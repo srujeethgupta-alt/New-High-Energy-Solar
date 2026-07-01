@@ -25,7 +25,7 @@ logger = setup_logger("startup")
 if __name__ == "__main__":
     import uvicorn
     parser = argparse.ArgumentParser(description="Solar Stock Management Server")
-    parser.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"), help="Host to bind to")
+    parser.add_argument("--host", default=os.environ.get("HOST", "0.0.0.0"), help="Host to bind to")
     parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8000")), help="Port to bind to")
     parser.add_argument("--reload", action="store_true", default=os.environ.get("RELOAD", "false").lower() == "true", help="Enable auto-reload for development")
     parser.add_argument("--ssl-certfile", default=os.environ.get("SSL_CERTFILE", ""), help="SSL certificate file path")
