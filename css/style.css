@@ -970,10 +970,6 @@ body {
   margin-bottom: 1.75rem;
 }
 
-@media (max-width: 900px) {
-  .dashboard-extras { grid-template-columns: 1fr; }
-}
-
 .extra-card {
   background: var(--bg-card);
   backdrop-filter: blur(12px);
@@ -1091,10 +1087,6 @@ body {
   grid-template-columns: 2fr 1fr;
   gap: 1.25rem;
   margin-bottom: 1.75rem;
-}
-
-@media (max-width: 1024px) {
-  .charts-grid { grid-template-columns: 1fr; }
 }
 
 .chart-card {
@@ -1680,10 +1672,6 @@ body {
   gap: 1.5rem;
 }
 
-@media (max-width: 768px) {
-  .reports-layout { grid-template-columns: 1fr; }
-}
-
 .report-export-card, .whatsapp-card {
   background: var(--bg-card);
   backdrop-filter: blur(12px);
@@ -1898,14 +1886,35 @@ body {
 .float-anim { animation: floatAnim 3s ease-in-out infinite; }
 .glow-pulse { animation: glowPulse 3s ease-in-out infinite; }
 
+/* ========== SIDEBAR OVERLAY ========== */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 99;
+}
+
 /* ========== RESPONSIVE ========== */
-@media (max-width: 768px) {
-  .sidebar {
-    transform: translateX(-100%);
+
+/* Tablet: 768px – 1023px */
+@media (max-width: 1023px) {
+  :root {
+    --sidebar-width: 280px;
+    --header-height: 64px;
   }
 
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 101;
+  }
   .sidebar.active {
     transform: translateX(0);
+  }
+  .sidebar-overlay.active {
+    display: block;
   }
 
   .main-wrapper {
@@ -1917,50 +1926,573 @@ body {
   }
 
   .top-header {
-    padding: 0 1rem;
+    padding: 0 1.25rem;
   }
 
   .content-body {
     padding: 1.25rem;
   }
 
-  .metrics-grid {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 0.75rem;
-  }
-
-  .metric-card {
-    padding: 1rem;
-  }
-
-  .metric-val {
-    font-size: 1.4rem;
-  }
-
-  .search-input-wrapper {
-    min-width: 180px;
-  }
-
   .profile-info {
     display: none;
-  }
-
-  .login-card {
-    padding: 2rem 1.5rem;
-    margin: 1rem;
-  }
-
-  .page-title-block h2 {
-    font-size: 1.3rem;
   }
 
   .header-greeting span:first-child {
     display: none;
   }
 
+  .dashboard-extras {
+    grid-template-columns: 1fr;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .product-stock-summary-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .energy-metrics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .page-title-block h2 {
+    font-size: 1.4rem;
+  }
+
+  .metric-val {
+    font-size: 1.6rem;
+  }
+}
+
+/* Mobile: 480px – 767px */
+@media (max-width: 767px) {
+  :root {
+    --sidebar-width: 260px;
+    --header-height: 56px;
+  }
+
+  .sidebar {
+    width: var(--sidebar-width);
+  }
+
+  .main-wrapper {
+    margin-left: 0;
+  }
+
+  .hamburger {
+    display: flex;
+  }
+
+  .top-header {
+    padding: 0 0.75rem;
+    height: var(--header-height);
+  }
+
+  .header-greeting {
+    display: none;
+  }
+
+  .header-right {
+    gap: 0.4rem;
+  }
+
   .header-btn {
     width: 36px;
     height: 36px;
+  }
+
+  .user-profile .avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+  }
+
+  .content-body {
+    padding: 0.75rem;
+  }
+
+  /* Dashboard metrics: 2 columns on mobile */
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+  }
+
+  .metric-card {
+    padding: 0.85rem;
+  }
+
+  .metric-card .metric-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .metric-card .metric-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .metric-val {
+    font-size: 1.25rem;
+  }
+
+  .metric-data h3 {
+    font-size: 0.65rem;
+  }
+
+  /* Dashboard extras */
+  .dashboard-extras {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .extra-card {
+    padding: 1rem;
+  }
+
+  /* Charts */
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .chart-card {
+    padding: 1rem;
+    min-height: 280px;
+  }
+
+  .chart-container {
+    height: 200px;
+  }
+
+  /* Energy forecast */
+  .energy-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .energy-stat {
+    padding: 0.5rem;
+  }
+
+  .energy-stat .stat-value {
+    font-size: 1rem;
+  }
+
+  .weather-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .weather-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .weather-temp {
+    font-size: 1.5rem;
+  }
+
+  /* Energy forecast calculator */
+  .pill-group {
+    gap: 0.3rem;
+  }
+
+  .pill-btn {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.72rem;
+  }
+
+  .energy-metrics-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .emetric {
+    padding: 0.6rem;
+  }
+
+  .emetric-value {
+    font-size: 1rem;
+  }
+
+  .emetric-label {
+    font-size: 0.62rem;
+  }
+
+  /* Product stock summary */
+  .product-stock-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .stock-summary-card {
+    padding: 1rem;
+  }
+
+  .stock-summary-row {
+    grid-template-columns: 1.4fr 1fr auto;
+    gap: 0.5rem;
+  }
+
+  /* Tables → Cards on mobile */
+  .table-responsive {
+    overflow-x: visible;
+    border-radius: 12px;
+  }
+
+  .data-table thead {
+    display: none;
+  }
+
+  .data-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem;
+    padding: 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+    position: relative;
+  }
+
+  .data-table td {
+    display: flex;
+    flex-direction: column;
+    padding: 0.25rem;
+    border-bottom: none;
+    font-size: 0.82rem;
+    min-height: 32px;
+  }
+
+  .data-table td::before {
+    content: attr(data-label);
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.15rem;
+  }
+
+  .data-table td:last-child {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .data-table td:last-child::before {
+    display: none;
+  }
+
+  .row-actions {
+    justify-content: flex-end;
+  }
+
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Pagination */
+  .pagination {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  /* Table controls */
+  .table-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .search-filter-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-input-wrapper {
+    min-width: unset;
+    width: 100%;
+  }
+
+  .select-filter {
+    min-width: unset;
+    width: 100%;
+  }
+
+  .action-buttons {
+    width: 100%;
+  }
+
+  .action-buttons .btn-primary {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Forms */
+  .input-control {
+    padding: 0.75rem 0.85rem;
+    font-size: 1rem;
+    min-height: 44px;
+  }
+
+  .btn-primary, .btn-secondary {
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  .select-filter {
+    padding: 0.75rem;
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  /* Modals full-screen on mobile */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-card {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    animation: modalSlideUp 0.35s ease-out;
+  }
+
+  @keyframes modalSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .modal-body {
+    padding: 1.25rem;
+    max-height: 60vh;
+  }
+
+  .modal-body .form-group {
+    margin-bottom: 0.85rem;
+  }
+
+  .modal-body .input-control {
+    padding: 0.75rem 0.85rem;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  .modal-footer {
+    padding: 0.85rem 1.25rem;
+    flex-direction: column;
+  }
+
+  .modal-footer .btn-primary,
+  .modal-footer .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Settings */
+  .settings-section-card {
+    padding: 1.25rem;
+  }
+
+  .settings-section-card .input-control {
+    min-height: 44px;
+  }
+
+  /* Reports */
+  .report-export-card, .whatsapp-card {
+    padding: 1.25rem;
+    min-height: auto;
+  }
+
+  /* Contacts panels */
+  .panel {
+    padding: 1rem;
+  }
+
+  /* Toast */
+  #toast-container {
+    bottom: 0.75rem;
+    right: 0.75rem;
+    left: 0.75rem;
+  }
+
+  .toast {
+    min-width: unset;
+    max-width: 100%;
+    width: 100%;
+    padding: 0.85rem 1rem;
+    font-size: 0.82rem;
+  }
+
+  /* Page title */
+  .page-title-block h2 {
+    font-size: 1.2rem;
+  }
+
+  .page-title-block p {
+    font-size: 0.8rem;
+  }
+
+  /* Stock in/out cards */
+  .stock-summary-row {
+    grid-template-columns: 1.2fr 1fr auto;
+  }
+
+  .stock-summary-name {
+    font-size: 0.72rem;
+  }
+
+  /* Panel count row */
+  .panel-count-row {
+    flex-wrap: wrap;
+  }
+
+  .panel-count-row label {
+    min-height: 44px;
+  }
+
+  .panel-count-row input {
+    min-height: 44px;
+  }
+}
+
+/* Small mobile: ≤479px */
+@media (max-width: 479px) {
+  .content-body {
+    padding: 0.5rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+  }
+
+  .metric-card {
+    padding: 0.65rem;
+  }
+
+  .metric-val {
+    font-size: 1.1rem;
+  }
+
+  .metric-card .metric-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .metric-card .metric-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .data-table tbody tr {
+    grid-template-columns: 1fr;
+    padding: 0.65rem;
+  }
+
+  .data-table td:last-child {
+    grid-column: 1;
+  }
+
+  .energy-metrics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .emetric-value {
+    font-size: 0.9rem;
+  }
+
+  .pill-btn {
+    font-size: 0.68rem;
+    padding: 0.35rem 0.6rem;
+  }
+
+  .header-right {
+    gap: 0.2rem;
+  }
+
+  .header-btn {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Login page responsive */
+@media (max-width: 767px) {
+  #login-section {
+    padding: 1rem;
+  }
+
+  .login-card {
+    padding: 1.75rem 1.25rem;
+    margin: 0;
+    border-radius: 16px;
+  }
+
+  .login-logo-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+  }
+
+  .login-logo-circle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .login-logo-circle svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .login-card h2 {
+    font-size: 1.3rem;
+  }
+
+  .login-card .form-group {
+    margin-bottom: 0.85rem;
+  }
+
+  .login-card .input-control {
+    padding: 0.75rem 0.85rem;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  .login-card .btn-primary {
+    padding: 0.8rem;
+    min-height: 44px;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 479px) {
+  #login-section {
+    padding: 0.5rem;
+  }
+
+  .login-card {
+    padding: 1.25rem 1rem;
   }
 }
 

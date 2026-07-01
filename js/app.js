@@ -634,7 +634,7 @@ function renderProductsTable() {
       ? `<span class="warning-badge"><i data-lucide="alert-triangle" style="width:12px;height:12px;"></i> LOW</span>`
       : '';
     tr.innerHTML = `
-      <td style="font-weight:600;">
+      <td data-label="ID" style="font-weight:600;">
         <div style="display:flex;align-items:center;gap:8px;">
           ${p.image_path
             ? `<img src="${p.image_path}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;">`
@@ -642,13 +642,13 @@ function renderProductsTable() {
           ${p.id}
         </div>
       </td>
-      <td>${warningBadge}${p.name} ${p.model_capacity ? `<span style="font-size:0.8rem;color:var(--text-muted);">(${p.model_capacity})</span>` : ''}</td>
-      <td>${p.category}</td>
-      <td>${p.brand}</td>
-      <td style="font-weight:bold;">${p.quantity} <span style="font-size:0.75rem;font-weight:normal;color:var(--text-muted);">${p.unit}</span></td>
-      <td>${p.minimum_stock}</td>
-      <td>${p.rack_location}</td>
-      <td>${p.supplier}</td>
+      <td data-label="Name">${warningBadge}${p.name} ${p.model_capacity ? `<span style="font-size:0.8rem;color:var(--text-muted);">(${p.model_capacity})</span>` : ''}</td>
+      <td data-label="Category">${p.category}</td>
+      <td data-label="Brand">${p.brand}</td>
+      <td data-label="Stock" style="font-weight:bold;">${p.quantity} <span style="font-size:0.75rem;font-weight:normal;color:var(--text-muted);">${p.unit}</span></td>
+      <td data-label="Min">${p.minimum_stock}</td>
+      <td data-label="Rack">${p.rack_location}</td>
+      <td data-label="Supplier">${p.supplier}</td>
       <td style="text-align:center;">
         <div class="row-actions" style="justify-content:center;">
           <button class="icon-btn edit" onclick="openEditProductModal('${p.id}')"><i data-lucide="edit" style="width:14px;height:14px;"></i></button>
@@ -806,14 +806,14 @@ function renderTransactionsTable() {
     const custSite = tx.type === 'IN' ? '-' : (tx.entity || '-');
     const empSupp = tx.type === 'IN' ? (tx.entity || '-') : (tx.employee || '-');
     tr.innerHTML = `
-      <td style="font-weight:600;">${tx.id}</td>
-      <td>${dateStr}</td>
-      <td><span class="badge ${badgeClass}">${label}</span></td>
-      <td><span style="font-weight:500;">${tx.product_name}</span> <span style="font-size:0.75rem;color:var(--text-muted);">(${tx.product_id})</span></td>
-      <td style="font-weight:bold;color:${tx.type === 'IN' ? 'var(--accent-green)' : 'var(--alert-red)'};">${sign}${tx.quantity}</td>
-      <td>${custSite}</td>
-      <td>${empSupp}</td>
-      <td style="font-style:italic;color:var(--text-secondary);font-size:0.85rem;">${tx.remarks || '-'}</td>`;
+      <td data-label="TX ID" style="font-weight:600;">${tx.id}</td>
+      <td data-label="Date">${dateStr}</td>
+      <td data-label="Type"><span class="badge ${badgeClass}">${label}</span></td>
+      <td data-label="Product"><span style="font-weight:500;">${tx.product_name}</span> <span style="font-size:0.75rem;color:var(--text-muted);">(${tx.product_id})</span></td>
+      <td data-label="Qty" style="font-weight:bold;color:${tx.type === 'IN' ? 'var(--accent-green)' : 'var(--alert-red)'};">${sign}${tx.quantity}</td>
+      <td data-label="Customer/Site">${custSite}</td>
+      <td data-label="Employee/Supplier">${empSupp}</td>
+      <td data-label="Remarks" style="font-style:italic;color:var(--text-secondary);font-size:0.85rem;">${tx.remarks || '-'}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -914,9 +914,9 @@ function renderContactsTables() {
   if (sTbody) {
     sTbody.innerHTML = state.suppliers.map(s => `
       <tr>
-        <td style="font-weight:500;">${s.name}</td>
-        <td>${s.contact_person || '-'}</td>
-        <td>${s.phone || '-'}</td>
+        <td data-label="Name" style="font-weight:500;">${s.name}</td>
+        <td data-label="Contact">${s.contact_person || '-'}</td>
+        <td data-label="Phone">${s.phone || '-'}</td>
         <td>
           <button class="icon-btn edit" onclick="openContactModal('supplier', '${s.id}')"><i data-lucide="edit" style="width:14px;height:14px;"></i></button>
           <button class="icon-btn delete" onclick="deleteContactCall('supplier', '${s.id}')"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
@@ -926,9 +926,9 @@ function renderContactsTables() {
   if (cTbody) {
     cTbody.innerHTML = state.customers.map(c => `
       <tr>
-        <td style="font-weight:500;">${c.name}</td>
-        <td>${c.contact_person || '-'}</td>
-        <td>${c.phone || '-'}</td>
+        <td data-label="Name" style="font-weight:500;">${c.name}</td>
+        <td data-label="Contact">${c.contact_person || '-'}</td>
+        <td data-label="Phone">${c.phone || '-'}</td>
         <td>
           <button class="icon-btn edit" onclick="openContactModal('customer', '${c.id}')"><i data-lucide="edit" style="width:14px;height:14px;"></i></button>
           <button class="icon-btn delete" onclick="deleteContactCall('customer', '${c.id}')"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
@@ -981,12 +981,20 @@ function setupEventListeners() {
   // Hamburger
   document.getElementById('hamburger-menu').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('active');
+    document.getElementById('sidebar-overlay').classList.toggle('active');
+  });
+
+  // Sidebar overlay click to close
+  document.getElementById('sidebar-overlay').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('active');
+    document.getElementById('sidebar-overlay').classList.remove('active');
   });
 
   // Nav items
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
       document.getElementById('sidebar').classList.remove('active');
+      document.getElementById('sidebar-overlay').classList.remove('active');
       const targetView = item.getAttribute('data-target');
       loadView(targetView);
     });
