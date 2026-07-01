@@ -2381,7 +2381,8 @@ body {
     min-height: 44px;
   }
 
-  .panel-count-row input {
+  .panel-count-row input,
+  .panel-count-row select {
     min-height: 44px;
   }
 }

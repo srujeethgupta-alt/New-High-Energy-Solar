@@ -289,11 +289,11 @@ function updateSolarEnergy(metrics, forecast) {
     });
   });
 
-  // Count input handler
-  const countInput = document.getElementById('panel-count-input');
-  if (countInput) {
-    countInput.removeEventListener('input', refreshEnergyMetrics);
-    countInput.addEventListener('input', refreshEnergyMetrics);
+  // kW selector handler
+  const kwSelect = document.getElementById('kw-select');
+  if (kwSelect) {
+    kwSelect.removeEventListener('change', refreshEnergyMetrics);
+    kwSelect.addEventListener('change', refreshEnergyMetrics);
   }
 
   refreshEnergyMetrics();
@@ -302,18 +302,19 @@ function updateSolarEnergy(metrics, forecast) {
 function refreshEnergyMetrics() {
   const type = forecastPanelTypes[selectedPanelTypeIdx];
   if (!type) return;
-  const countInput = document.getElementById('panel-count-input');
-  const count = Math.max(1, parseInt((countInput && countInput.value) || '1', 10) || 1);
+  const kwSelect = document.getElementById('kw-select');
+  const kw = Math.max(0.5, parseFloat((kwSelect && kwSelect.value) || '2') || 2);
 
   const production = document.getElementById('energy-production');
   const capacity = document.getElementById('energy-capacity');
   const co2 = document.getElementById('energy-co2');
   const efficiency = document.getElementById('energy-efficiency');
 
-  const daily = type.unit_daily_kwh * count;
+  const panelCount = Math.ceil((kw * 1000) / type.unit_watt);
+  const daily = type.unit_daily_kwh * panelCount;
   if (production) animateCounter(production, Math.round(daily * 100) / 100);
-  const ah = type.unit_daily_kwh * 1000 / 230;
-  if (capacity) capacity.textContent = Math.round(ah) + ' Ah';
+  const totalAh = daily * 1000 / 230;
+  if (capacity) capacity.textContent = Math.round(totalAh) + ' Ah';
   if (co2) co2.textContent = Math.round(daily * 0.85) + ' kg';
   if (efficiency) efficiency.textContent = type.efficiency_pct + '%';
 }
