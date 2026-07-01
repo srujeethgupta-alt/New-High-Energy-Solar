@@ -313,8 +313,8 @@ function refreshEnergyMetrics() {
   const panelCount = Math.ceil((kw * 1000) / type.unit_watt);
   const daily = type.unit_daily_kwh * panelCount;
   if (production) animateCounter(production, Math.round(daily * 100) / 100);
-  const totalAh = daily * 1000 / 230;
-  if (capacity) capacity.textContent = Math.round(totalAh) + ' Ah';
+  const totalAmps = (kw * 1000) / 230;
+  if (capacity) capacity.textContent = Math.round(totalAmps) + ' A';
   if (co2) co2.textContent = Math.round(daily * 0.85) + ' kg';
   if (efficiency) efficiency.textContent = type.efficiency_pct + '%';
 }
