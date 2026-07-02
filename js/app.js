@@ -58,14 +58,14 @@ window.addEventListener('online', function() {
 });
 window.addEventListener('offline', function() {
   updateOnlineStatus();
-  showToast('No internet connection. Some features may be unavailable.', 'warning');
+  showToast('No internet connection. Changes are saved locally.', 'warning');
 });
 
 // ============================================================
 // State Management
 // ============================================================
 const state = {
-  token: localStorage.getItem('solar_session_token') || null,
+  loggedIn: localStorage.getItem('solar_logged_in') === 'true',
   username: localStorage.getItem('solar_username') || null,
   products: [],
   transactions: [],
@@ -87,41 +87,92 @@ let trendChartInstance = null;
 let categoryChartInstance = null;
 
 // ============================================================
-// API Helper
+// Local Data Store
 // ============================================================
-async function apiCall(endpoint, method = 'GET', body = null, timeoutMs = 30000) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
-  const options = { method, headers };
-  if (body) options.body = JSON.stringify(body);
-  const controller = new AbortController();
-  options.signal = controller.signal;
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+const SEED = {
+  config: {
+    admin_username: 'admin',
+    admin_password: 'admin',
+    email_smtp_server: 'smtp.gmail.com',
+    email_smtp_port: 587,
+    email_sender: '',
+    email_password: '',
+    email_recipient: '',
+    whatsapp_recipient: '',
+    whatsapp_phone_number_id: '',
+    whatsapp_token: '',
+    energy_peak_sun_hours: 5
+  },
+  products: [
+    { id: 'P001', name: 'Mono Solar Panel 400W', category: 'Solar Panels', brand: 'SunPower', unit: 'Pcs', quantity: 79, minimum_stock: 20, supplier: 'Solar Components Inc', rack_location: 'Rack A-1', model_capacity: '', image_path: '', unit_watt: 400, unit_daily_kwh: 1.6, efficiency_pct: 21.5 },
+    { id: 'P002', name: 'Hybrid Inverter 10kW', category: 'Inverters', brand: 'Growatt', unit: 'Pcs', quantity: 10, minimum_stock: 5, supplier: 'PowerTech Solutions', rack_location: 'Rack B-3', model_capacity: '', image_path: '', unit_watt: 0, unit_daily_kwh: 0, efficiency_pct: 0 },
+    { id: 'P003', name: 'DC Solar Cable 6mm2 (100m)', category: 'Cables', brand: 'Kabel', unit: 'Roll', quantity: 4, minimum_stock: 10, supplier: 'Solar Cables Co', rack_location: 'Rack C-2', model_capacity: '', image_path: '', unit_watt: 0, unit_daily_kwh: 0, efficiency_pct: 0 },
+    { id: 'P004', name: 'LiFePO4 Solar Battery 48V 100Ah', category: 'Batteries', brand: 'BYD', unit: 'Pcs', quantity: 3, minimum_stock: 5, supplier: 'BatteryWorld', rack_location: 'Rack D-1', model_capacity: '', image_path: '', unit_watt: 0, unit_daily_kwh: 0, efficiency_pct: 0 },
+    { id: 'P006', name: 'Bifacial Solar Panel 450W', category: 'Solar Panels', brand: 'scQW', unit: 'pcs', quantity: 30, minimum_stock: 100, supplier: '', rack_location: '', model_capacity: '10kw', image_path: '', unit_watt: 450, unit_daily_kwh: 1.8, efficiency_pct: 22.5 }
+  ],
+  suppliers: [
+    { id: 'S001', name: 'Global Solar Dist', contact_person: 'Alice', phone: '555-0192', email: 'alice@globalsolar.com', address: '123 Solar Way' }
+  ],
+  customers: [
+    { id: 'C001', name: 'Eco Build Corp', contact_person: 'Bob', phone: '555-9988', email: 'bob@ecobuild.com', address: '456 Green Blvd' }
+  ],
+  transactions: [
+    { id: 'T001', type: 'IN', product_id: 'P001', product_name: 'Mono Solar Panel 400W', quantity: 85, entity: 'Solar Components Inc', date: '2026-06-29', remarks: 'Initial stock setup', timestamp: '2026-06-29T08:00:00.000Z' },
+    { id: 'T002', type: 'IN', product_id: 'P002', product_name: 'Hybrid Inverter 10kW', quantity: 12, entity: 'PowerTech Solutions', date: '2026-06-29', remarks: 'Initial stock setup', timestamp: '2026-06-29T08:05:00.000Z' },
+    { id: 'T003', type: 'IN', product_id: 'P003', product_name: 'DC Solar Cable 6mm2 (100m)', quantity: 6, entity: 'Solar Cables Co', date: '2026-06-29', remarks: 'Initial stock setup', timestamp: '2026-06-29T08:10:00.000Z' },
+    { id: 'T004', type: 'OUT', product_id: 'P003', product_name: 'DC Solar Cable 6mm2 (100m)', quantity: 2, entity: 'Apex Green Project Site', date: '2026-06-29', remarks: 'Project installation', timestamp: '2026-06-29T08:30:00.000Z' },
+    { id: 'T005', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: 'Vignan Solar Site', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T03:48:19.382Z' },
+    { id: 'T006', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T03:48:19.395Z' },
+    { id: 'T007', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: 'Vignan Solar Site', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T03:48:46.089Z' },
+    { id: 'T008', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T03:48:46.101Z' },
+    { id: 'T009', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: 'Vignan Solar Site', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T03:50:39.215Z' },
+    { id: 'T010', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T03:50:39.228Z' },
+    { id: 'T011', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: '', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T04:09:35.866Z' },
+    { id: 'T012', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T04:09:35.881Z' },
+    { id: 'T013', type: 'OUT', product_id: 'P001', product_name: 'Mono Solar Panel 400W', quantity: 5, entity: '', date: '2026-06-29', remarks: '', timestamp: '2026-06-29T04:11:03.659Z' },
+    { id: 'T014', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: '', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T04:23:02.223Z' },
+    { id: 'T015', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T04:23:02.236Z' },
+    { id: 'T016', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: '', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T04:28:22.603Z' },
+    { id: 'T017', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T04:28:22.616Z' },
+    { id: 'T018', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: '', employee: 'John Doe', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T05:23:52.951Z' },
+    { id: 'T019', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T05:23:52.960Z' },
+    { id: 'T020', type: 'OUT', product_id: 'P001', product_name: 'Mono Solar Panel 400W', quantity: 1, entity: '', employee: '', date: '2026-06-29', remarks: '', timestamp: '2026-06-29T10:05:59.765Z' },
+    { id: 'T021', type: 'IN', product_id: 'P001', product_name: 'Mono Solar Panel 400W', quantity: 2, entity: '', date: '2026-06-30', remarks: '', timestamp: '2026-06-30T03:22:57.250Z' },
+    { id: 'T022', type: 'OUT', product_id: 'P002', product_name: 'Hybrid Inverter 10kW', quantity: 2, entity: '', employee: 'ravi', date: '2026-06-30', remarks: '', timestamp: '2026-06-30T03:23:13.649Z' },
+    { id: 'T023', type: 'OUT', product_id: 'P001', product_name: 'Mono Solar Panel 400W', quantity: 1, entity: 'Test Customer', employee: 'Test Employee', date: '2026-07-01', remarks: 'Audit test', timestamp: '2026-07-01T05:53:27.232Z' },
+    { id: 'T024', type: 'OUT', product_id: 'P001', product_name: 'Mono Solar Panel 400W', quantity: 1, entity: '', employee: '', date: '2026-07-01', remarks: 'Final test', timestamp: '2026-07-01T06:01:07.969Z' }
+  ]
+};
+
+function loadDB() {
   try {
-    const response = await fetch(endpoint, options);
-    clearTimeout(timer);
-    if (response.status === 401) {
-      logoutLocal();
-      showToast('Session expired. Please log in again.', 'error');
-      throw new Error('Unauthorized');
+    const saved = localStorage.getItem('solar_db');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      SEED.config = { ...SEED.config, ...parsed.config };
+      SEED.products = parsed.products || SEED.products;
+      SEED.suppliers = parsed.suppliers || SEED.suppliers;
+      SEED.customers = parsed.customers || SEED.customers;
+      SEED.transactions = parsed.transactions || SEED.transactions;
     }
-    const contentType = response.headers.get('content-type');
-    if (contentType && (contentType.includes('application/pdf') || contentType.includes('spreadsheetml'))) {
-      return response;
-    }
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.detail || 'API request failed');
-    return result;
-  } catch (error) {
-    clearTimeout(timer);
-    if (error.name === 'AbortError') {
-      throw new Error('Request timed out. Please check your connection and try again.');
-    }
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error. Please check your connection.');
-    }
-    throw error;
+  } catch (e) {
+    console.warn('Failed to load DB from localStorage, using seed data');
   }
+}
+
+function saveDB() {
+  localStorage.setItem('solar_db', JSON.stringify({
+    config: SEED.config,
+    products: SEED.products,
+    suppliers: SEED.suppliers,
+    customers: SEED.customers,
+    transactions: SEED.transactions
+  }));
+}
+
+function genId(prefix) {
+  const n = Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4).toUpperCase();
+  return prefix + n;
 }
 
 // ============================================================
@@ -271,7 +322,6 @@ function updateSolarEnergy(metrics, forecast) {
     return;
   }
 
-  // Build pill buttons
   let html = '';
   types.forEach((t, i) => {
     const active = i === selectedPanelTypeIdx ? ' pill-active' : '';
@@ -279,7 +329,6 @@ function updateSolarEnergy(metrics, forecast) {
   });
   selector.innerHTML = html;
 
-  // Attach click handlers
   selector.querySelectorAll('.pill-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       selector.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('pill-active'));
@@ -289,7 +338,6 @@ function updateSolarEnergy(metrics, forecast) {
     });
   });
 
-  // kW selector handler
   const kwSelect = document.getElementById('kw-select');
   if (kwSelect) {
     kwSelect.removeEventListener('change', refreshEnergyMetrics);
@@ -380,9 +428,9 @@ function showApp() {
 }
 
 function logoutLocal() {
-  state.token = null;
+  state.loggedIn = false;
   state.username = null;
-  localStorage.removeItem('solar_session_token');
+  localStorage.removeItem('solar_logged_in');
   localStorage.removeItem('solar_username');
   showLogin();
 }
@@ -419,18 +467,14 @@ async function loadView(viewId) {
       renderContactsTables();
     }
   } catch (err) {
-    if (err.message !== 'Unauthorized') showToast(err.message, 'error');
+    showToast(err.message, 'error');
   }
 }
 
 async function loadContactsData() {
-  try {
-    state.suppliers = await apiCall('/api/suppliers');
-    state.customers = await apiCall('/api/customers');
-    populateContactDropdowns();
-  } catch (err) {
-    /* contacts load silently on first visit */
-  }
+  state.suppliers = SEED.suppliers;
+  state.customers = SEED.customers;
+  populateContactDropdowns();
 }
 
 function populateContactDropdowns() {
@@ -449,18 +493,27 @@ function populateContactDropdowns() {
 async function loadDashboardData() {
   updateWeather();
   const temp = currentWeather.temp;
-  const data = await apiCall('/api/dashboard?temp_c=' + temp);
-  const metrics = data.metrics;
-  const forecast = data.energy_forecast;
-  state.chartsData = data.charts;
+
+  const products = SEED.products;
+  const transactions = SEED.transactions;
+  const today = new Date().toISOString().split('T')[0];
+
+  const total_products = products.length;
+  const available_stock = products.reduce((s, p) => s + p.quantity, 0);
+  const low_stock_items = products.filter(p => p.quantity < p.minimum_stock && p.quantity > 0).length;
+  const out_of_stock_items = products.filter(p => p.quantity === 0).length;
+  const today_stock_in = transactions.filter(tx => tx.type === 'IN' && tx.date === today).reduce((s, tx) => s + tx.quantity, 0);
+  const today_stock_out = transactions.filter(tx => tx.type === 'OUT' && tx.date === today).reduce((s, tx) => s + tx.quantity, 0);
+
+  state.metrics = { total_products, available_stock, low_stock_items, out_of_stock_items, today_stock_in, today_stock_out };
 
   const metricIds = [
-    { id: 'metric-total-products', val: metrics.total_products },
-    { id: 'metric-available-stock', val: metrics.available_stock },
-    { id: 'metric-low-stock', val: metrics.low_stock_items },
-    { id: 'metric-out-stock', val: metrics.out_of_stock_items },
-    { id: 'metric-today-in', val: metrics.today_stock_in },
-    { id: 'metric-today-out', val: metrics.today_stock_out }
+    { id: 'metric-total-products', val: total_products },
+    { id: 'metric-available-stock', val: available_stock },
+    { id: 'metric-low-stock', val: low_stock_items },
+    { id: 'metric-out-stock', val: out_of_stock_items },
+    { id: 'metric-today-in', val: today_stock_in },
+    { id: 'metric-today-out', val: today_stock_out }
   ];
 
   metricIds.forEach(({ id, val }) => {
@@ -468,7 +521,44 @@ async function loadDashboardData() {
     if (el) animateCounter(el, val);
   });
 
-  updateSolarEnergy(metrics, forecast);
+  // Build forecast data from solar panel products
+  const panelProducts = products.filter(p => p.category === 'Solar Panels' && p.unit_watt > 0);
+  const forecast = { panel_types: panelProducts.map(p => ({
+    id: p.id,
+    name: p.name,
+    unit_watt: p.unit_watt,
+    unit_daily_kwh: p.unit_daily_kwh,
+    efficiency_pct: p.efficiency_pct
+  })) };
+
+  updateSolarEnergy(state.metrics, forecast);
+
+  // Build chart data from transactions
+  const last7 = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    last7.push(d.toISOString().split('T')[0]);
+  }
+
+  const inData = last7.map(day => transactions.filter(tx => tx.type === 'IN' && tx.date === day).reduce((s, tx) => s + tx.quantity, 0));
+  const outData = last7.map(day => transactions.filter(tx => tx.type === 'OUT' && tx.date === day).reduce((s, tx) => s + tx.quantity, 0));
+
+  const dayLabels = last7.map(d => {
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  });
+
+  const catAcc = {};
+  products.forEach(p => {
+    catAcc[p.category] = (catAcc[p.category] || 0) + p.quantity;
+  });
+
+  state.chartsData = {
+    in_out_trend: { labels: dayLabels, in: inData, out: outData },
+    categories: catAcc
+  };
+
   renderCharts();
 }
 
@@ -591,7 +681,7 @@ function renderCharts() {
 // PRODUCTS
 // ============================================================
 async function loadProductsData() {
-  state.products = await apiCall('/api/products');
+  state.products = SEED.products;
   populateCategoryOptions();
   renderProductStockSummary();
   renderProductsTable();
@@ -734,16 +824,15 @@ function openEditProductModal(productId) {
 }
 
 async function deleteProductCall(productId) {
-  if (confirm(`Are you sure you want to delete product ID ${productId}?`)) {
-    try {
-      const res = await apiCall(`/api/products/${productId}`, 'DELETE');
-      if (res.success) {
-        showToast(res.message);
-        await loadProductsData();
-      }
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
+  if (!confirm(`Are you sure you want to delete product ID ${productId}?`)) return;
+  const idx = SEED.products.findIndex(p => p.id === productId);
+  if (idx !== -1) {
+    SEED.products.splice(idx, 1);
+    saveDB();
+    showToast('Product deleted successfully.');
+    await loadProductsData();
+  } else {
+    showToast('Product not found.', 'error');
   }
 }
 
@@ -751,8 +840,8 @@ async function deleteProductCall(productId) {
 // TRANSACTIONS
 // ============================================================
 async function loadTransactionsData() {
-  state.transactions = await apiCall('/api/transactions');
-  state.products = await apiCall('/api/products');
+  state.transactions = SEED.transactions;
+  state.products = SEED.products;
   populateTransactionsSelects();
   renderTransactionsTable();
 }
@@ -823,74 +912,66 @@ function renderTransactionsTable() {
 // REPORTS
 // ============================================================
 async function loadReportsData() {
-  try {
-    const config = await apiCall('/api/email/config');
-    document.getElementById('email-stat-recipient').innerText = config.email_recipient || 'Not Configured';
-    document.getElementById('email-stat-server').innerText = config.email_smtp_server || 'Not Configured';
-  } catch (err) {
-    if (err.message !== 'Unauthorized') showToast(err.message, 'error');
-  }
-  try {
-    const wa = await apiCall('/api/whatsapp/config');
-    document.getElementById('wa-stat-recipient').innerText = wa.whatsapp_recipient || 'Not Configured';
-    document.getElementById('wa-stat-phoneid').innerText = wa.whatsapp_phone_number_id || 'Not Configured';
-  } catch (err) {
-    if (err.message !== 'Unauthorized') showToast(err.message, 'error');
-  }
+  document.getElementById('email-stat-recipient').innerText = SEED.config.email_recipient || 'Demo Mode';
+  document.getElementById('email-stat-server').innerText = SEED.config.email_smtp_server || 'Demo Mode';
+  document.getElementById('wa-stat-recipient').innerText = SEED.config.whatsapp_recipient || 'Demo Mode';
+  document.getElementById('wa-stat-phoneid').innerText = SEED.config.whatsapp_phone_number_id || 'Demo Mode';
 }
 
 function downloadReportFile(format) {
   const range = document.getElementById('report-range').value;
-  const endpoint = `/api/reports/export?range_type=${range}&file_format=${format}`;
-  showToast('Generating report file. Please wait...', 'warning');
-  const headers = { 'Authorization': `Bearer ${state.token}` };
-  fetch(endpoint, { headers })
-    .then(response => {
-      if (!response.ok) throw new Error('Failed to generate report file.');
-      return response.blob();
-    })
-    .then(blob => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${range}_report_${new Date().toISOString().split('T')[0]}.${format === 'xlsx' ? 'xlsx' : 'pdf'}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      showToast('Report downloaded successfully!');
-    })
-    .catch(err => showToast(err.message, 'error'));
+  // Client-side CSV export
+  const txns = SEED.transactions;
+  let filtered = txns;
+  const now = new Date();
+  if (range === 'daily') {
+    const today = now.toISOString().split('T')[0];
+    filtered = txns.filter(tx => tx.date === today);
+  } else if (range === 'weekly') {
+    const weekAgo = new Date(now);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const cutoff = weekAgo.toISOString().split('T')[0];
+    filtered = txns.filter(tx => tx.date >= cutoff);
+  } else if (range === 'monthly') {
+    const monthAgo = new Date(now);
+    monthAgo.setDate(monthAgo.getDate() - 30);
+    const cutoff = monthAgo.toISOString().split('T')[0];
+    filtered = txns.filter(tx => tx.date >= cutoff);
+  }
+
+  if (format === 'csv') {
+    const headers = ['ID', 'Type', 'Product ID', 'Product Name', 'Quantity', 'Entity', 'Date', 'Remarks'];
+    const rows = filtered.map(tx => [tx.id, tx.type, tx.product_id, tx.product_name, tx.quantity, tx.entity || '', tx.date, tx.remarks || '']);
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${range}_report_${now.toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Report downloaded as CSV!');
+  } else {
+    showToast('Serverless mode. PDF/Excel export is not available. Downloading CSV instead.', 'warning');
+    downloadReportFile('csv');
+  }
 }
 
 // ============================================================
 // SETTINGS
 // ============================================================
 async function loadSettingsData() {
-  try {
-    const config = await apiCall('/api/email/config');
-    document.getElementById('set-email-smtp').value = config.email_smtp_server || '';
-    document.getElementById('set-email-port').value = config.email_smtp_port || 587;
-    document.getElementById('set-email-sender').value = config.email_sender || '';
-    document.getElementById('set-email-password').value = config.email_password || '';
-    document.getElementById('set-email-recipient').value = config.email_recipient || '';
-  } catch (err) {
-    if (err.message !== 'Unauthorized') showToast(err.message, 'error');
-  }
-  try {
-    const wa = await apiCall('/api/whatsapp/config');
-    document.getElementById('set-wa-recipient').value = wa.whatsapp_recipient || '';
-    document.getElementById('set-wa-phone-id').value = wa.whatsapp_phone_number_id || '';
-    document.getElementById('set-wa-token').value = wa.whatsapp_token || '';
-  } catch (err) {
-    if (err.message !== 'Unauthorized') showToast(err.message, 'error');
-  }
-  try {
-    const energy = await apiCall('/api/energy/config');
-    document.getElementById('set-energy-sun').value = energy.energy_peak_sun_hours || 5;
-  } catch (err) {
-    if (err.message !== 'Unauthorized') showToast(err.message, 'error');
-  }
+  document.getElementById('set-email-smtp').value = SEED.config.email_smtp_server || '';
+  document.getElementById('set-email-port').value = SEED.config.email_smtp_port || 587;
+  document.getElementById('set-email-sender').value = SEED.config.email_sender || '';
+  document.getElementById('set-email-password').value = SEED.config.email_password || '';
+  document.getElementById('set-email-recipient').value = SEED.config.email_recipient || '';
+  document.getElementById('set-wa-recipient').value = SEED.config.whatsapp_recipient || '';
+  document.getElementById('set-wa-phone-id').value = SEED.config.whatsapp_phone_number_id || '';
+  document.getElementById('set-wa-token').value = SEED.config.whatsapp_token || '';
+  document.getElementById('set-energy-sun').value = SEED.config.energy_peak_sun_hours || 5;
 }
 
 function updateStockOutAvailableHint() {
@@ -963,15 +1044,16 @@ function openContactModal(type, id = null) {
 
 async function deleteContactCall(type, id) {
   if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
-  try {
-    const res = await apiCall(`/api/${type}s/${id}`, 'DELETE');
-    if (res.success) {
-      showToast(res.message);
-      await loadContactsData();
-      renderContactsTables();
-    }
-  } catch (err) {
-    showToast(err.message, 'error');
+  const list = type === 'supplier' ? SEED.suppliers : SEED.customers;
+  const idx = list.findIndex(i => i.id === id);
+  if (idx !== -1) {
+    list.splice(idx, 1);
+    saveDB();
+    showToast(`${type === 'supplier' ? 'Supplier' : 'Customer'} deleted successfully.`);
+    await loadContactsData();
+    renderContactsTables();
+  } else {
+    showToast('Contact not found.', 'error');
   }
 }
 
@@ -1011,19 +1093,18 @@ function setupEventListeners() {
       btn.disabled = true;
       btn.innerHTML = '<i data-lucide="loader" style="width:18px;height:18px;animation:rotateSun 2s linear infinite;"></i> Signing In...';
       lucide.createIcons();
-      const res = await apiCall('/api/login', 'POST', {
-        username: usernameInput.value,
-        password: passwordInput.value
-      });
-      if (res.success) {
-        state.token = res.token;
-        state.username = res.username;
-        localStorage.setItem('solar_session_token', res.token);
-        localStorage.setItem('solar_username', res.username);
+      const cfg = SEED.config;
+      if (usernameInput.value === cfg.admin_username && passwordInput.value === cfg.admin_password) {
+        state.loggedIn = true;
+        state.username = cfg.admin_username;
+        localStorage.setItem('solar_logged_in', 'true');
+        localStorage.setItem('solar_username', cfg.admin_username);
         usernameInput.value = '';
         passwordInput.value = '';
         showToast('Login successful. Welcome back!');
         showApp();
+      } else {
+        throw new Error('Invalid username or password');
       }
     } catch (err) {
       showToast(err.message, 'error');
@@ -1040,7 +1121,6 @@ function setupEventListeners() {
   // Logout
   document.getElementById('logout-button').addEventListener('click', async () => {
     if (confirm('Are you sure you want to sign out?')) {
-      try { await apiCall('/api/logout', 'POST'); } catch (err) { /* ignore */ }
       logoutLocal();
       showToast('Logged out successfully.');
     }
@@ -1110,23 +1190,34 @@ function setupEventListeners() {
       minimum_stock: parseInt(document.getElementById('prod-min').value),
       supplier: document.getElementById('prod-supplier').value.trim(),
       rack_location: document.getElementById('prod-location').value.trim(),
-      model_capacity: document.getElementById('prod-model').value.trim()
+      model_capacity: document.getElementById('prod-model').value.trim(),
+      image_path: '',
+      unit_watt: 0,
+      unit_daily_kwh: 0,
+      efficiency_pct: 0
     };
     try {
-      let res;
       if (mode === 'ADD') {
-        res = await apiCall('/api/products', 'POST', payload);
+        const exists = SEED.products.find(p => p.id === payload.id);
+        if (exists) throw new Error('Product ID already exists');
+        SEED.products.push(payload);
+        saveDB();
+        showToast('Product added successfully.');
       } else {
-        const currentProd = state.products.find(p => p.id === id);
-        payload.quantity = currentProd ? currentProd.quantity : 0;
-        payload.image_path = currentProd ? (currentProd.image_path || '') : '';
-        res = await apiCall(`/api/products/${id}`, 'PUT', payload);
+        const idx = SEED.products.findIndex(p => p.id === id);
+        if (idx === -1) throw new Error('Product not found');
+        const current = SEED.products[idx];
+        payload.quantity = current.quantity;
+        payload.image_path = current.image_path || '';
+        payload.unit_watt = current.unit_watt || 0;
+        payload.unit_daily_kwh = current.unit_daily_kwh || 0;
+        payload.efficiency_pct = current.efficiency_pct || 0;
+        SEED.products[idx] = payload;
+        saveDB();
+        showToast('Product updated successfully.');
       }
-      if (res.success) {
-        showToast(res.message);
-        document.getElementById('product-modal').style.display = 'none';
-        await loadProductsData();
-      }
+      document.getElementById('product-modal').style.display = 'none';
+      await loadProductsData();
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -1185,41 +1276,65 @@ function setupEventListeners() {
   // Stock In form
   document.getElementById('stock-in-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const payload = {
-      product_id: document.getElementById('in-product').value,
-      quantity: parseInt(document.getElementById('in-qty').value),
-      supplier: document.getElementById('in-supplier').value,
-      date: document.getElementById('in-date').value,
-      remarks: document.getElementById('in-remarks').value
-    };
+    const productId = document.getElementById('in-product').value;
+    const qty = parseInt(document.getElementById('in-qty').value);
+    const supplier = document.getElementById('in-supplier').value;
+    const date = document.getElementById('in-date').value;
+    const remarks = document.getElementById('in-remarks').value;
     try {
-      const res = await apiCall('/api/stock-in', 'POST', payload);
-      if (res.success) {
-        showToast(res.message);
-        document.getElementById('stock-in-modal').style.display = 'none';
-        await loadTransactionsData();
-      }
+      const product = SEED.products.find(p => p.id === productId);
+      if (!product) throw new Error('Product not found');
+      product.quantity += qty;
+      const tx = {
+        id: genId('T'),
+        type: 'IN',
+        product_id: productId,
+        product_name: product.name,
+        quantity: qty,
+        entity: supplier,
+        date: date,
+        remarks: remarks,
+        timestamp: new Date().toISOString()
+      };
+      SEED.transactions.push(tx);
+      saveDB();
+      showToast('Stock in recorded successfully.');
+      document.getElementById('stock-in-modal').style.display = 'none';
+      await loadTransactionsData();
     } catch (err) { showToast(err.message, 'error'); }
   });
 
   // Stock Out form
   document.getElementById('stock-out-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const payload = {
-      product_id: document.getElementById('out-product').value,
-      quantity: parseInt(document.getElementById('out-qty').value),
-      customer: document.getElementById('out-customer').value,
-      employee: document.getElementById('out-employee').value,
-      date: document.getElementById('out-date').value,
-      remarks: document.getElementById('out-remarks').value
-    };
+    const productId = document.getElementById('out-product').value;
+    const qty = parseInt(document.getElementById('out-qty').value);
+    const customer = document.getElementById('out-customer').value;
+    const employee = document.getElementById('out-employee').value;
+    const date = document.getElementById('out-date').value;
+    const remarks = document.getElementById('out-remarks').value;
     try {
-      const res = await apiCall('/api/stock-out', 'POST', payload);
-      if (res.success) {
-        showToast(res.message);
-        document.getElementById('stock-out-modal').style.display = 'none';
-        await loadTransactionsData();
-      }
+      const product = SEED.products.find(p => p.id === productId);
+      if (!product) throw new Error('Product not found');
+      if (product.quantity < qty) throw new Error('Insufficient stock');
+      product.quantity -= qty;
+      const tx = {
+        id: genId('T'),
+        type: 'OUT',
+        product_id: productId,
+        product_name: product.name,
+        quantity: qty,
+        entity: customer,
+        employee: employee,
+        date: date,
+        remarks: remarks,
+        timestamp: new Date().toISOString()
+      };
+      SEED.transactions.push(tx);
+      saveDB();
+      showToast('Stock out recorded successfully.');
+      document.getElementById('stock-out-modal').style.display = 'none';
+      await loadTransactionsData();
     } catch (err) { showToast(err.message, 'error'); }
   });
 
@@ -1227,120 +1342,52 @@ function setupEventListeners() {
   document.getElementById('export-pdf-btn').addEventListener('click', () => downloadReportFile('pdf'));
   document.getElementById('export-xlsx-btn').addEventListener('click', () => downloadReportFile('xlsx'));
 
-  // Email test
+  // Email test (stub - demo mode)
   document.getElementById('trigger-email-test').addEventListener('click', async () => {
-    const btn = document.getElementById('trigger-email-test');
-    const originalText = btn.innerHTML;
-    try {
-      btn.innerHTML = '<i data-lucide="loader" style="width:16px;height:16px;animation:rotateSun 2s linear infinite;"></i> Sending...';
-      lucide.createIcons();
-      btn.disabled = true;
-      const res = await apiCall('/api/email/test-send', 'POST');
-      if (res.success) showToast(res.message);
-    } catch (err) {
-      const msg = err.detail || err.message || '';
-      if (msg.includes('auth') || msg.includes('password') || msg.includes('login'))
-        showToast('Email: Authentication failed. Use an App Password for Gmail (not your regular password).', 'error');
-      else
-        showToast(msg, 'error');
-    } finally {
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-      lucide.createIcons();
-    }
+    showToast('Serverless mode. Email sending is not available. Configure a backend to use this feature.', 'warning');
   });
 
-  // Weekly email test
+  // Weekly email test (stub)
   document.getElementById('trigger-email-test-weekly').addEventListener('click', async () => {
-    const btn = document.getElementById('trigger-email-test-weekly');
-    const originalText = btn.innerHTML;
-    try {
-      btn.innerHTML = '<i data-lucide="loader" style="width:16px;height:16px;animation:rotateSun 2s linear infinite;"></i> Sending...';
-      lucide.createIcons();
-      btn.disabled = true;
-      const res = await apiCall('/api/email/test-send-weekly', 'POST');
-      if (res.success) showToast(res.message);
-    } catch (err) {
-      const msg = err.detail || err.message || '';
-      if (msg.includes('auth') || msg.includes('password') || msg.includes('login'))
-        showToast('Email: Authentication failed. Use an App Password for Gmail (not your regular password).', 'error');
-      else
-        showToast(msg, 'error');
-    } finally {
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-      lucide.createIcons();
-    }
+    showToast('Serverless mode. Email sending is not available. Configure a backend to use this feature.', 'warning');
   });
 
-  // Settings form
+  // WhatsApp test send (stub)
+  document.getElementById('trigger-wa-test').addEventListener('click', async () => {
+    showToast('Serverless mode. WhatsApp sending is not available. Configure a backend to use this feature.', 'warning');
+  });
+
+  // Settings email form
   document.getElementById('settings-email-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const payload = {
-      email_smtp_server: document.getElementById('set-email-smtp').value,
-      email_smtp_port: parseInt(document.getElementById('set-email-port').value) || 587,
-      email_sender: document.getElementById('set-email-sender').value,
-      email_password: document.getElementById('set-email-password').value,
-      email_recipient: document.getElementById('set-email-recipient').value
-    };
-    try {
-      const res = await apiCall('/api/email/config', 'POST', payload);
-      if (res.success) {
-        showToast(res.message);
-        await loadSettingsData();
-      }
-    } catch (err) { showToast(err.message, 'error'); }
+    SEED.config.email_smtp_server = document.getElementById('set-email-smtp').value;
+    SEED.config.email_smtp_port = parseInt(document.getElementById('set-email-port').value) || 587;
+    SEED.config.email_sender = document.getElementById('set-email-sender').value;
+    SEED.config.email_password = document.getElementById('set-email-password').value;
+    SEED.config.email_recipient = document.getElementById('set-email-recipient').value;
+    saveDB();
+    showToast('Email configuration saved (local only).');
+    await loadSettingsData();
   });
 
   // WhatsApp Settings form
   document.getElementById('settings-wa-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const payload = {
-      whatsapp_recipient: document.getElementById('set-wa-recipient').value,
-      whatsapp_phone_number_id: document.getElementById('set-wa-phone-id').value,
-      whatsapp_token: document.getElementById('set-wa-token').value
-    };
-    try {
-      const res = await apiCall('/api/whatsapp/config', 'POST', payload);
-      if (res.success) {
-        showToast(res.message);
-        await loadSettingsData();
-      }
-    } catch (err) { showToast(err.message, 'error'); }
-  });
-
-  // WhatsApp test send
-  document.getElementById('trigger-wa-test').addEventListener('click', async () => {
-    const btn = document.getElementById('trigger-wa-test');
-    const originalText = btn.innerHTML;
-    try {
-      btn.innerHTML = '<i data-lucide="loader" style="width:16px;height:16px;animation:rotateSun 2s linear infinite;"></i> Sending...';
-      lucide.createIcons();
-      btn.disabled = true;
-      const res = await apiCall('/api/whatsapp/test-send', 'POST');
-      if (res.success) showToast(res.message, 'success');
-    } catch (err) {
-      showToast(err.detail || err.message || 'Send failed', 'error');
-    } finally {
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-      lucide.createIcons();
-    }
+    SEED.config.whatsapp_recipient = document.getElementById('set-wa-recipient').value;
+    SEED.config.whatsapp_phone_number_id = document.getElementById('set-wa-phone-id').value;
+    SEED.config.whatsapp_token = document.getElementById('set-wa-token').value;
+    saveDB();
+    showToast('WhatsApp configuration saved (local only).');
+    await loadSettingsData();
   });
 
   // Energy forecast form
   document.getElementById('settings-energy-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const payload = {
-      energy_peak_sun_hours: parseFloat(document.getElementById('set-energy-sun').value) || 5
-    };
-    try {
-      const res = await apiCall('/api/energy/config', 'POST', payload);
-      if (res.success) {
-        showToast(res.message);
-        await loadSettingsData();
-      }
-    } catch (err) { showToast(err.message, 'error'); }
+    SEED.config.energy_peak_sun_hours = parseFloat(document.getElementById('set-energy-sun').value) || 5;
+    saveDB();
+    showToast('Energy settings saved.');
+    await loadSettingsData();
   });
 }
 
@@ -1353,25 +1400,29 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const type = document.getElementById('contact-type').value;
-      const id = document.getElementById('contact-id').value || `${type.charAt(0).toUpperCase()}${Date.now()}`;
+      const existingId = document.getElementById('contact-id').value;
       const payload = {
-        id,
+        id: existingId || genId(type === 'supplier' ? 'S' : 'C'),
         name: document.getElementById('contact-name').value,
         contact_person: document.getElementById('contact-person').value,
         phone: document.getElementById('contact-phone').value,
         email: document.getElementById('contact-email').value,
         address: document.getElementById('contact-address').value
       };
-      const method = document.getElementById('contact-id').value ? 'PUT' : 'POST';
-      const endpoint = document.getElementById('contact-id').value ? `/api/${type}s/${id}` : `/api/${type}s`;
       try {
-        const res = await apiCall(endpoint, method, payload);
-        if (res.success) {
-          showToast(res.message);
-          document.getElementById('contact-modal').style.display = 'none';
-          await loadContactsData();
-          renderContactsTables();
+        const list = type === 'supplier' ? SEED.suppliers : SEED.customers;
+        if (existingId) {
+          const idx = list.findIndex(i => i.id === existingId);
+          if (idx !== -1) list[idx] = payload;
+          else throw new Error('Contact not found');
+        } else {
+          list.push(payload);
         }
+        saveDB();
+        showToast(`${type === 'supplier' ? 'Supplier' : 'Customer'} saved successfully.`);
+        document.getElementById('contact-modal').style.display = 'none';
+        await loadContactsData();
+        renderContactsTables();
       } catch (err) { showToast(err.message, 'error'); }
     });
   }
@@ -1415,17 +1466,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
+  loadDB();
   loadTheme();
   startLiveClock();
   initParticles();
   updateOnlineStatus();
-  if (state.token) {
-    try {
-      await apiCall('/api/dashboard', 'GET', null, 5000);
-      showApp();
-    } catch {
-      logoutLocal();
-    }
+  if (state.loggedIn) {
+    showApp();
   } else {
     showLogin();
   }

@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: solar-stock
-    runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m backend.run --host 0.0.0.0
-    healthCheckPath: /api/health

@@ -1,10 +1,6 @@
 {
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 10
-    }
-  },
+  "trailingSlash": false,
   "rewrites": [
-    { "source": "/(.*)", "destination": "api/index.py" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
