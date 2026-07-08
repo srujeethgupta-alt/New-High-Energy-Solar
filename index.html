@@ -769,7 +769,11 @@
 <script>
 function togglePassword() {
   const pw = document.getElementById('password');
-  const icon = pw.nextElementSibling.querySelector('i');
+  if (!pw) return;
+  const btn = pw.nextElementSibling;
+  if (!btn) return;
+  const icon = btn.querySelector('i');
+  if (!icon) return;
   if (pw.type === 'password') {
     pw.type = 'text';
     icon.setAttribute('data-lucide', 'eye-off');
