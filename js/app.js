@@ -609,7 +609,7 @@ function renderProductsTable() {
       </td>
       <td data-label="Name">${warningBadge}${p.name} ${p.model_capacity ? `<span style="font-size:0.8rem;color:var(--text-muted);">(${p.model_capacity})</span>` : ''}</td>
       <td data-label="Category">${p.category}</td>
-      <td data-label="Brand">${p.brand}</td>
+      <td data-label="Brand">${p.brand || '—'}</td>
       <td data-label="Stock" style="font-weight:bold;">${p.quantity} <span style="font-size:0.75rem;font-weight:normal;color:var(--text-muted);">${p.unit}</span></td>
       <td data-label="Min">${p.minimum_stock}</td>
       <td data-label="Rack">${p.rack_location}</td>
