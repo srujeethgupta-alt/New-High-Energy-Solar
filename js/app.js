@@ -794,7 +794,7 @@ async function loadReportsData() {
   document.getElementById('wa-stat-phoneid').innerText = SEED.config.whatsapp_phone_number_id || 'Demo Mode';
 }
 
-function downloadReportFile() {
+function downloadReportFile(format) {
   const range = document.getElementById('report-range').value;
   const txns = SEED.transactions;
   let filtered = txns;
@@ -816,17 +816,37 @@ function downloadReportFile() {
 
   const headers = ['ID', 'Type', 'Product ID', 'Product Name', 'Quantity', 'Entity', 'Date', 'Remarks'];
   const rows = filtered.map(tx => [tx.id, tx.type, tx.product_id, tx.product_name, tx.quantity, tx.entity || '', tx.date, tx.remarks || '']);
-  const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${range}_report_${now.toISOString().split('T')[0]}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-  showToast('Report downloaded as CSV!');
+  const filename = `${range}_report_${now.toISOString().split('T')[0]}`;
+
+  if (format === 'pdf') {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('Stock Report', 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${now.toLocaleString()}`, 14, 22);
+    doc.autoTable({ head: [headers], body: rows, startY: 28, styles: { fontSize: 8 }, headStyles: { fillColor: [255, 193, 7], textColor: [15, 23, 42] } });
+    doc.save(`${filename}.pdf`);
+    showToast('Report downloaded as PDF!');
+  } else if (format === 'xlsx') {
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Report');
+    XLSX.writeFile(wb, `${filename}.xlsx`);
+    showToast('Report downloaded as Excel!');
+  } else {
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Report downloaded as CSV!');
+  }
 }
 
 // ============================================================
@@ -1221,6 +1241,8 @@ function setupEventListeners() {
   });
 
   // Report exports
+  document.getElementById('export-pdf-btn').addEventListener('click', () => downloadReportFile('pdf'));
+  document.getElementById('export-xlsx-btn').addEventListener('click', () => downloadReportFile('xlsx'));
   document.getElementById('export-csv-btn').addEventListener('click', () => downloadReportFile('csv'));
 
   // Email test (stub - demo mode)
