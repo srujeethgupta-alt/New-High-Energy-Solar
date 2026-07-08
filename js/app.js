@@ -76,11 +76,11 @@ const state = {
   prodPage: 1,
   prodLimit: 8,
   prodSearch: '',
-  prodFilterCat: '',
   txPage: 1,
   txLimit: 999999,
   txSearch: '',
-  txFilterType: ''
+  txFilterType: '',
+  txFilterCat: ''
 };
 
 let trendChartInstance = null;
@@ -379,35 +379,25 @@ function updateWeather() {
 // ============================================================
 // Init Helpers
 // ============================================================
-const DEFAULT_PRODUCT_CATEGORIES = ['Solar Panels', 'Inverters', 'Cables', 'Batteries', 'Accessories'];
 
 function populateCategoryOptions(extraCategory = '') {
   const fromProducts = [...new Set(state.products.map(p => p.category).filter(Boolean))];
   const categories = [...new Set([
-    ...DEFAULT_PRODUCT_CATEGORIES,
     ...fromProducts,
     ...(extraCategory ? [extraCategory] : [])
   ])].sort();
-  const filterSelect = document.getElementById('product-category-filter');
   const categoryList = document.getElementById('prod-category-list');
-  const currentFilter = filterSelect ? filterSelect.value : '';
-  if (filterSelect) {
-    filterSelect.innerHTML =
-      '<option value="">All Categories</option>' +
-      categories.map(c => `<option value="${c}">${c}</option>`).join('');
-    if (categories.includes(currentFilter)) filterSelect.value = currentFilter;
-  }
   if (categoryList) {
     categoryList.innerHTML = categories.map(c => `<option value="${c}">`).join('');
   }
 }
 
-function populateTxTypeFilter() {
+function populateTxCategoryFilter() {
   const categories = [...new Set(state.products.map(p => p.category).filter(Boolean))].sort();
-  const select = document.getElementById('tx-type-filter');
+  const select = document.getElementById('tx-category-filter');
   const currentVal = select.value;
   select.innerHTML =
-    '<option value="">All Types</option>' +
+    '<option value="">All Categories</option>' +
     categories.map(c => `<option value="${c}">${c}</option>`).join('');
   if (categories.includes(currentVal)) select.value = currentVal;
 }
@@ -480,11 +470,11 @@ async function loadContactsData() {
 function populateContactDropdowns() {
   const suppSelect = document.getElementById('prod-supplier');
   const inSuppSelect = document.getElementById('in-supplier');
-  const custSelect = document.getElementById('out-customer');
   const opts = (items) => '<option value="">Select Supplier...</option>' + items.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
   if (suppSelect) suppSelect.innerHTML = opts(state.suppliers);
   if (inSuppSelect) inSuppSelect.innerHTML = opts(state.suppliers);
-  if (custSelect) custSelect.innerHTML = '<option value="">Select Customer/Site...</option>' + state.customers.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+  const custList = document.getElementById('out-customer-list');
+  if (custList) custList.innerHTML = state.customers.map(c => `<option value="${c.name}">`).join('');
 }
 
 // ============================================================
@@ -683,7 +673,7 @@ function renderCharts() {
 async function loadProductsData() {
   state.products = SEED.products;
   populateCategoryOptions();
-  populateTxTypeFilter();
+  populateTxCategoryFilter();
   renderProductStockSummary();
   renderProductsTable();
 }
@@ -696,8 +686,7 @@ function renderProductsTable() {
     const matchSearch = (p.name || '').toLowerCase().includes(q) ||
                         (p.id || '').toLowerCase().includes(q) ||
                         (p.rack_location || '').toLowerCase().includes(q);
-    const matchCat = state.prodFilterCat === '' || p.category === state.prodFilterCat;
-    return matchSearch && matchCat;
+    return matchSearch;
   });
   const total = filtered.length;
   document.getElementById('prod-total-count').innerText = total;
@@ -843,7 +832,7 @@ async function deleteProductCall(productId) {
 async function loadTransactionsData() {
   state.transactions = [...SEED.transactions].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   state.products = SEED.products;
-  populateTxTypeFilter();
+  populateTxCategoryFilter();
   populateTransactionsSelects();
   renderTransactionsTable();
 }
@@ -866,9 +855,10 @@ function renderTransactionsTable() {
                         (tx.entity || '').toLowerCase().includes(q) ||
                         (tx.employee || '').toLowerCase().includes(q) ||
                         (tx.id || '').toLowerCase().includes(q);
-    const matchType = state.txFilterType === '' ||
-      (state.products.find(p => p.id === tx.product_id)?.category === state.txFilterType);
-    return matchSearch && matchType;
+    const matchType = state.txFilterType === '' || tx.type === state.txFilterType;
+    const matchCat = state.txFilterCat === '' ||
+      (state.products.find(p => p.id === tx.product_id)?.category === state.txFilterCat);
+    return matchSearch && matchType && matchCat;
   });
   const total = filtered.length;
   document.getElementById('tx-total-count').innerText = total;
@@ -1129,14 +1119,9 @@ function setupEventListeners() {
     }
   });
 
-  // Product search/filter
+  // Product search
   document.getElementById('product-search').addEventListener('input', (e) => {
     state.prodSearch = e.target.value;
-    state.prodPage = 1;
-    renderProductsTable();
-  });
-  document.getElementById('product-category-filter').addEventListener('change', (e) => {
-    state.prodFilterCat = e.target.value;
     state.prodPage = 1;
     renderProductsTable();
   });
@@ -1151,8 +1136,7 @@ function setupEventListeners() {
       const s = (p.name || '').toLowerCase().includes(q) ||
                 (p.id || '').toLowerCase().includes(q) ||
                 (p.rack_location || '').toLowerCase().includes(q);
-      const c = state.prodFilterCat === '' || p.category === state.prodFilterCat;
-      return s && c;
+      return s;
     }).length;
     const pages = Math.ceil(total / state.prodLimit);
     if (state.prodPage < pages) { state.prodPage++; renderProductsTable(); }
@@ -1237,6 +1221,11 @@ function setupEventListeners() {
     state.txPage = 1;
     renderTransactionsTable();
   });
+  document.getElementById('tx-category-filter').addEventListener('change', (e) => {
+    state.txFilterCat = e.target.value;
+    state.txPage = 1;
+    renderTransactionsTable();
+  });
 
   // Transaction pagination
   document.getElementById('tx-prev-page').addEventListener('click', () => {
@@ -1250,9 +1239,10 @@ function setupEventListeners() {
                 (tx.entity || '').toLowerCase().includes(q) ||
                 (tx.employee || '').toLowerCase().includes(q) ||
                 (tx.id || '').toLowerCase().includes(q);
-      const t = state.txFilterType === '' ||
-        (state.products.find(p => p.id === tx.product_id)?.category === state.txFilterType);
-      return s && t;
+      const t = state.txFilterType === '' || tx.type === state.txFilterType;
+      const c = state.txFilterCat === '' ||
+        (state.products.find(p => p.id === tx.product_id)?.category === state.txFilterCat);
+      return s && t && c;
     }).length;
     const pages = Math.ceil(total / state.txLimit);
     if (state.txPage < pages) { state.txPage++; renderTransactionsTable(); }
@@ -1313,22 +1303,34 @@ function setupEventListeners() {
     e.preventDefault();
     const productId = document.getElementById('out-product').value;
     const qty = parseInt(document.getElementById('out-qty').value);
-    const customer = document.getElementById('out-customer').value;
+    const customerName = document.getElementById('out-customer').value.trim();
     const employee = document.getElementById('out-employee').value;
     const date = document.getElementById('out-date').value;
     const remarks = document.getElementById('out-remarks').value;
     try {
+      if (!customerName) throw new Error('Customer / Project Site name is required');
       const product = SEED.products.find(p => p.id === productId);
       if (!product) throw new Error('Product not found');
       if (product.quantity < qty) throw new Error('Insufficient stock');
       product.quantity -= qty;
+      const existingCust = SEED.customers.find(c => c.name.toLowerCase() === customerName.toLowerCase());
+      if (!existingCust) {
+        SEED.customers.push({
+          id: genId('C'),
+          name: customerName,
+          contact_person: '',
+          phone: '',
+          email: '',
+          address: ''
+        });
+      }
       const tx = {
         id: genId('T'),
         type: 'OUT',
         product_id: productId,
         product_name: product.name,
         quantity: qty,
-        entity: customer,
+        entity: customerName,
         employee: employee,
         date: date,
         remarks: remarks,
@@ -1338,6 +1340,7 @@ function setupEventListeners() {
       await saveDB();
       showToast('Stock out recorded successfully.');
       document.getElementById('stock-out-modal').style.display = 'none';
+      await loadContactsData();
       await loadTransactionsData();
     } catch (err) { showToast(err.message, 'error'); }
   });

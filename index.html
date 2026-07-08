@@ -290,9 +290,6 @@
               <i data-lucide="search" class="search-icon" style="width:16px;height:16px;"></i>
               <input type="text" id="product-search" class="input-control search-input" placeholder="Search by ID, name or rack location...">
             </div>
-            <select id="product-category-filter" class="select-filter">
-              <option value="">All Categories</option>
-            </select>
           </div>
           <div class="action-buttons">
             <button class="btn-primary" id="add-product-btn">
@@ -343,6 +340,11 @@
             </div>
             <select id="tx-type-filter" class="select-filter" style="min-width:120px;">
               <option value="">All Types</option>
+              <option value="IN">Stock In</option>
+              <option value="OUT">Stock Out</option>
+            </select>
+            <select id="tx-category-filter" class="select-filter" style="min-width:140px;">
+              <option value="">All Categories</option>
             </select>
           </div>
           <div class="action-buttons">
@@ -693,9 +695,8 @@
         </div>
         <div class="form-group">
           <label for="out-customer">Customer / Project Site</label>
-          <select id="out-customer" class="input-control">
-            <option value="">Select Customer/Site...</option>
-          </select>
+          <input type="text" id="out-customer" class="input-control" list="out-customer-list" placeholder="Type customer or site name" required>
+          <datalist id="out-customer-list"></datalist>
         </div>
         <div class="form-group">
           <label for="out-employee">Employee Name</label>
@@ -763,7 +764,7 @@
 <!-- Toast Container -->
 <div id="toast-container"></div>
 
-<script src="js/app.js?v=6"></script>
+<script src="js/app.js?v=8"></script>
 <script>
 function togglePassword() {
   const pw = document.getElementById('password');
