@@ -78,7 +78,7 @@ const state = {
   prodSearch: '',
   prodFilterCat: '',
   txPage: 1,
-  txLimit: 8,
+  txLimit: 999999,
   txSearch: '',
   txFilterType: ''
 };
