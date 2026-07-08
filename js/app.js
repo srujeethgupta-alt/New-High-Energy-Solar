@@ -103,45 +103,10 @@ const SEED = {
     whatsapp_token: '',
     energy_peak_sun_hours: 5
   },
-  products: [
-    { id: 'P001', name: 'Mono Solar Panel 400W', category: 'Solar Panels', brand: 'SunPower', unit: 'Pcs', quantity: 79, minimum_stock: 20, supplier: 'Solar Components Inc', rack_location: 'Rack A-1', model_capacity: '', image_path: '', unit_watt: 400, unit_daily_kwh: 1.6, efficiency_pct: 21.5 },
-    { id: 'P002', name: 'Hybrid Inverter 10kW', category: 'Inverters', brand: 'Growatt', unit: 'Pcs', quantity: 10, minimum_stock: 5, supplier: 'PowerTech Solutions', rack_location: 'Rack B-3', model_capacity: '', image_path: '', unit_watt: 0, unit_daily_kwh: 0, efficiency_pct: 0 },
-    { id: 'P003', name: 'DC Solar Cable 6mm2 (100m)', category: 'Cables', brand: 'Kabel', unit: 'Roll', quantity: 4, minimum_stock: 10, supplier: 'Solar Cables Co', rack_location: 'Rack C-2', model_capacity: '', image_path: '', unit_watt: 0, unit_daily_kwh: 0, efficiency_pct: 0 },
-    { id: 'P004', name: 'LiFePO4 Solar Battery 48V 100Ah', category: 'Batteries', brand: 'BYD', unit: 'Pcs', quantity: 3, minimum_stock: 5, supplier: 'BatteryWorld', rack_location: 'Rack D-1', model_capacity: '', image_path: '', unit_watt: 0, unit_daily_kwh: 0, efficiency_pct: 0 },
-    { id: 'P006', name: 'Bifacial Solar Panel 450W', category: 'Solar Panels', brand: 'scQW', unit: 'pcs', quantity: 30, minimum_stock: 100, supplier: '', rack_location: '', model_capacity: '10kw', image_path: '', unit_watt: 450, unit_daily_kwh: 1.8, efficiency_pct: 22.5 }
-  ],
-  suppliers: [
-    { id: 'S001', name: 'Global Solar Dist', contact_person: 'Alice', phone: '555-0192', email: 'alice@globalsolar.com', address: '123 Solar Way' }
-  ],
-  customers: [
-    { id: 'C001', name: 'Eco Build Corp', contact_person: 'Bob', phone: '555-9988', email: 'bob@ecobuild.com', address: '456 Green Blvd' }
-  ],
-  transactions: [
-    { id: 'T001', type: 'IN', product_id: 'P001', product_name: 'Mono Solar Panel 400W', quantity: 85, entity: 'Solar Components Inc', date: '2026-06-29', remarks: 'Initial stock setup', timestamp: '2026-06-29T08:00:00.000Z' },
-    { id: 'T002', type: 'IN', product_id: 'P002', product_name: 'Hybrid Inverter 10kW', quantity: 12, entity: 'PowerTech Solutions', date: '2026-06-29', remarks: 'Initial stock setup', timestamp: '2026-06-29T08:05:00.000Z' },
-    { id: 'T003', type: 'IN', product_id: 'P003', product_name: 'DC Solar Cable 6mm2 (100m)', quantity: 6, entity: 'Solar Cables Co', date: '2026-06-29', remarks: 'Initial stock setup', timestamp: '2026-06-29T08:10:00.000Z' },
-    { id: 'T004', type: 'OUT', product_id: 'P003', product_name: 'DC Solar Cable 6mm2 (100m)', quantity: 2, entity: 'Apex Green Project Site', date: '2026-06-29', remarks: 'Project installation', timestamp: '2026-06-29T08:30:00.000Z' },
-    { id: 'T005', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: 'Vignan Solar Site', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T03:48:19.382Z' },
-    { id: 'T006', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T03:48:19.395Z' },
-    { id: 'T007', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: 'Vignan Solar Site', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T03:48:46.089Z' },
-    { id: 'T008', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T03:48:46.101Z' },
-    { id: 'T009', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: 'Vignan Solar Site', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T03:50:39.215Z' },
-    { id: 'T010', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T03:50:39.228Z' },
-    { id: 'T011', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: '', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T04:09:35.866Z' },
-    { id: 'T012', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T04:09:35.881Z' },
-    { id: 'T013', type: 'OUT', product_id: 'P001', product_name: 'Mono Solar Panel 400W', quantity: 5, entity: '', date: '2026-06-29', remarks: '', timestamp: '2026-06-29T04:11:03.659Z' },
-    { id: 'T014', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: '', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T04:23:02.223Z' },
-    { id: 'T015', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T04:23:02.236Z' },
-    { id: 'T016', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: '', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T04:28:22.603Z' },
-    { id: 'T017', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T04:28:22.616Z' },
-    { id: 'T018', type: 'OUT', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 10, entity: '', employee: 'John Doe', date: '2026-06-29', remarks: 'Project phase 1', timestamp: '2026-06-29T05:23:52.951Z' },
-    { id: 'T019', type: 'IN', product_id: 'P006', product_name: 'Bifacial Solar Panel 450W', quantity: 25, entity: 'Longi Logistics', date: '2026-06-29', remarks: 'Weekly supply restock', timestamp: '2026-06-29T05:23:52.960Z' },
-    { id: 'T020', type: 'OUT', product_id: 'P001', product_name: 'Mono Solar Panel 400W', quantity: 1, entity: '', employee: '', date: '2026-06-29', remarks: '', timestamp: '2026-06-29T10:05:59.765Z' },
-    { id: 'T021', type: 'IN', product_id: 'P001', product_name: 'Mono Solar Panel 400W', quantity: 2, entity: '', date: '2026-06-30', remarks: '', timestamp: '2026-06-30T03:22:57.250Z' },
-    { id: 'T022', type: 'OUT', product_id: 'P002', product_name: 'Hybrid Inverter 10kW', quantity: 2, entity: '', employee: 'ravi', date: '2026-06-30', remarks: '', timestamp: '2026-06-30T03:23:13.649Z' },
-    { id: 'T023', type: 'OUT', product_id: 'P001', product_name: 'Mono Solar Panel 400W', quantity: 1, entity: 'Test Customer', employee: 'Test Employee', date: '2026-07-01', remarks: 'Audit test', timestamp: '2026-07-01T05:53:27.232Z' },
-    { id: 'T024', type: 'OUT', product_id: 'P001', product_name: 'Mono Solar Panel 400W', quantity: 1, entity: '', employee: '', date: '2026-07-01', remarks: 'Final test', timestamp: '2026-07-01T06:01:07.969Z' }
-  ]
+  products: [],
+  suppliers: [],
+  customers: [],
+  transactions: []
 };
 
 // ============================================================
