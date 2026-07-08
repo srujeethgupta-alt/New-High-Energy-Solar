@@ -380,18 +380,6 @@ function updateWeather() {
 // Init Helpers
 // ============================================================
 
-function populateCategoryOptions(extraCategory = '') {
-  const fromProducts = [...new Set(state.products.map(p => p.category).filter(Boolean))];
-  const categories = [...new Set([
-    ...fromProducts,
-    ...(extraCategory ? [extraCategory] : [])
-  ])].sort();
-  const categoryList = document.getElementById('prod-category-list');
-  if (categoryList) {
-    categoryList.innerHTML = categories.map(c => `<option value="${c}">`).join('');
-  }
-}
-
 function populateTxCategoryFilter() {
   const categories = [...new Set(state.products.map(p => p.category).filter(Boolean))].sort();
   const select = document.getElementById('tx-category-filter');
@@ -672,7 +660,6 @@ function renderCharts() {
 // ============================================================
 async function loadProductsData() {
   state.products = SEED.products;
-  populateCategoryOptions();
   populateTxCategoryFilter();
   renderProductStockSummary();
   renderProductsTable();
@@ -797,7 +784,6 @@ function openEditProductModal(productId) {
   if (!p) return;
   document.getElementById('product-modal-title').innerText = 'Edit Product';
   document.getElementById('prod-mode').value = 'EDIT';
-  populateCategoryOptions(p.category);
   document.getElementById('prod-id').value = p.id;
   document.getElementById('prod-id').disabled = true;
   document.getElementById('prod-name').value = p.name;
@@ -1147,7 +1133,6 @@ function setupEventListeners() {
     document.getElementById('product-modal-title').innerText = 'Add Product';
     document.getElementById('prod-mode').value = 'ADD';
     document.getElementById('product-form').reset();
-    populateCategoryOptions();
     document.getElementById('prod-qty-group').style.display = 'block';
     document.getElementById('prod-qty').setAttribute('required', 'true');
     document.getElementById('prod-model').value = '';
