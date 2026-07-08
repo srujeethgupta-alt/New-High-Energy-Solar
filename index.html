@@ -772,7 +772,7 @@ function togglePassword() {
   if (!pw) return;
   const btn = pw.nextElementSibling;
   if (!btn) return;
-  const icon = btn.querySelector('i');
+  const icon = btn.querySelector('[data-lucide]');
   if (!icon) return;
   if (pw.type === 'password') {
     pw.type = 'text';
