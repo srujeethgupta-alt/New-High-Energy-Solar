@@ -93,10 +93,9 @@ const SEED = {
   config: {
     admin_username: 'admin',
     admin_password: 'admin',
-    email_smtp_server: 'smtp.gmail.com',
-    email_smtp_port: 587,
-    email_sender: '',
-    email_password: '',
+    emailjs_public_key: '',
+    emailjs_service_id: '',
+    emailjs_template_id: '',
     email_recipient: '',
     whatsapp_recipient: '',
     whatsapp_phone_number_id: '',
@@ -788,10 +787,10 @@ function renderTransactionsTable() {
 // REPORTS
 // ============================================================
 async function loadReportsData() {
-  document.getElementById('email-stat-recipient').innerText = SEED.config.email_recipient || 'Demo Mode';
-  document.getElementById('email-stat-server').innerText = SEED.config.email_smtp_server || 'Demo Mode';
-  document.getElementById('wa-stat-recipient').innerText = SEED.config.whatsapp_recipient || 'Demo Mode';
-  document.getElementById('wa-stat-phoneid').innerText = SEED.config.whatsapp_phone_number_id || 'Demo Mode';
+  document.getElementById('email-stat-recipient').innerText = SEED.config.email_recipient || 'Not configured';
+  document.getElementById('email-stat-status').innerText = SEED.config.emailjs_public_key ? '✓ Configured' : '— Not configured';
+  document.getElementById('wa-stat-recipient').innerText = SEED.config.whatsapp_recipient || 'Not configured';
+  document.getElementById('wa-stat-phoneid').innerText = SEED.config.whatsapp_phone_number_id || 'Not configured';
 }
 
 function downloadReportFile(format) {
@@ -853,10 +852,9 @@ function downloadReportFile(format) {
 // SETTINGS
 // ============================================================
 async function loadSettingsData() {
-  document.getElementById('set-email-smtp').value = SEED.config.email_smtp_server || '';
-  document.getElementById('set-email-port').value = SEED.config.email_smtp_port || 587;
-  document.getElementById('set-email-sender').value = SEED.config.email_sender || '';
-  document.getElementById('set-email-password').value = SEED.config.email_password || '';
+  document.getElementById('set-emailjs-public-key').value = SEED.config.emailjs_public_key || '';
+  document.getElementById('set-emailjs-service-id').value = SEED.config.emailjs_service_id || '';
+  document.getElementById('set-emailjs-template-id').value = SEED.config.emailjs_template_id || '';
   document.getElementById('set-email-recipient').value = SEED.config.email_recipient || '';
   document.getElementById('set-wa-recipient').value = SEED.config.whatsapp_recipient || '';
   document.getElementById('set-wa-phone-id').value = SEED.config.whatsapp_phone_number_id || '';
@@ -1245,15 +1243,52 @@ function setupEventListeners() {
   document.getElementById('export-xlsx-btn').addEventListener('click', () => downloadReportFile('xlsx'));
   document.getElementById('export-csv-btn').addEventListener('click', () => downloadReportFile('csv'));
 
-  // Email test (stub - demo mode)
-  document.getElementById('trigger-email-test').addEventListener('click', async () => {
-    showToast('Serverless mode. Email sending is not available. Configure a backend to use this feature.', 'warning');
-  });
+  // Email test — send via EmailJS
+  async function sendEmailReport(rangeLabel) {
+    const pk = SEED.config.emailjs_public_key;
+    const sid = SEED.config.emailjs_service_id;
+    const tid = SEED.config.emailjs_template_id;
+    const recipient = SEED.config.email_recipient;
+    if (!pk || !sid || !tid || !recipient) {
+      showToast('Please configure EmailJS in Settings first.', 'warning');
+      return;
+    }
+    emailjs.init(pk);
+    const now = new Date();
+    const txns = SEED.transactions;
+    let filtered = txns;
+    if (rangeLabel === 'daily') {
+      const today = now.toISOString().split('T')[0];
+      filtered = txns.filter(tx => tx.date === today);
+    } else if (rangeLabel === 'weekly') {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      filtered = txns.filter(tx => tx.date >= weekAgo.toISOString().split('T')[0]);
+    } else if (rangeLabel === 'monthly') {
+      const monthAgo = new Date(now);
+      monthAgo.setDate(monthAgo.getDate() - 30);
+      filtered = txns.filter(tx => tx.date >= monthAgo.toISOString().split('T')[0]);
+    }
+    const totalIn = filtered.filter(t => t.type === 'IN').reduce((s, t) => s + t.quantity, 0);
+    const totalOut = filtered.filter(t => t.type === 'OUT').reduce((s, t) => s + t.quantity, 0);
+    const summary = `IN: ${totalIn}, OUT: ${totalOut}, Total transactions: ${filtered.length}`;
+    try {
+      await emailjs.send(sid, tid, {
+        to_email: recipient,
+        from_name: 'New High Energy Solar',
+        report_date: now.toLocaleDateString(),
+        report_range: rangeLabel.charAt(0).toUpperCase() + rangeLabel.slice(1),
+        transaction_count: filtered.length,
+        report_summary: summary,
+      });
+      showToast(`${rangeLabel.charAt(0).toUpperCase() + rangeLabel.slice(1)} report sent to ${recipient}!`);
+    } catch (err) {
+      showToast('Email send failed: ' + (err.text || err.message || 'unknown error'), 'error');
+    }
+  }
 
-  // Weekly email test (stub)
-  document.getElementById('trigger-email-test-weekly').addEventListener('click', async () => {
-    showToast('Serverless mode. Email sending is not available. Configure a backend to use this feature.', 'warning');
-  });
+  document.getElementById('trigger-email-test').addEventListener('click', () => sendEmailReport('daily'));
+  document.getElementById('trigger-email-test-weekly').addEventListener('click', () => sendEmailReport('weekly'));
 
   // WhatsApp test send (stub)
   document.getElementById('trigger-wa-test').addEventListener('click', async () => {
@@ -1263,14 +1298,14 @@ function setupEventListeners() {
   // Settings email form
   document.getElementById('settings-email-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    SEED.config.email_smtp_server = document.getElementById('set-email-smtp').value;
-    SEED.config.email_smtp_port = parseInt(document.getElementById('set-email-port').value) || 587;
-    SEED.config.email_sender = document.getElementById('set-email-sender').value;
-    SEED.config.email_password = document.getElementById('set-email-password').value;
+    SEED.config.emailjs_public_key = document.getElementById('set-emailjs-public-key').value;
+    SEED.config.emailjs_service_id = document.getElementById('set-emailjs-service-id').value;
+    SEED.config.emailjs_template_id = document.getElementById('set-emailjs-template-id').value;
     SEED.config.email_recipient = document.getElementById('set-email-recipient').value;
     await saveDB();
-    showToast('Email configuration saved (local only).');
+    showToast('EmailJS configuration saved.');
     await loadSettingsData();
+    await loadReportsData();
   });
 
   // WhatsApp Settings form

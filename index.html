@@ -19,6 +19,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- three.js removed: serverless static build -->
 </head>
@@ -357,7 +358,7 @@
               </p>
               <div id="email-status-indicator" style="background:rgba(255,255,255,0.02);border:1px solid var(--border-color);padding:1rem;border-radius:10px;font-size:0.82rem;line-height:1.6;">
                 <div><b>Recipient:</b> <span id="email-stat-recipient">Configuring...</span></div>
-                <div><b>SMTP Server:</b> <span id="email-stat-server">Configuring...</span></div>
+                <div><b>Service:</b> EmailJS <span id="email-stat-status"></span></div>
                 <div style="margin-top:8px;"><b>Schedule:</b> Daily <b>6:00 PM</b> &bull; Weekly Mon <b>6:00 PM</b></div>
               </div>
             </div>
@@ -435,21 +436,20 @@
           <div class="settings-section-card">
             <h3><i data-lucide="mail" style="width:18px;height:18px;color:#0EA5E9;vertical-align:middle;"></i> Email Report Configuration</h3>
             <form id="settings-email-form">
-              <div class="form-group">
-                <label for="set-email-smtp">SMTP Server</label>
-                <input type="text" id="set-email-smtp" class="input-control" placeholder="e.g. smtp.gmail.com" value="smtp.gmail.com" required>
+              <div style="background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.2);padding:0.75rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:0.82rem;color:var(--text-secondary);line-height:1.5;">
+                Uses <b>EmailJS</b> to send reports. Create a free account at <a href="https://www.emailjs.com" target="_blank" style="color:#0EA5E9;">emailjs.com</a>, connect an email service, and create a template with variables: <code style="background:rgba(0,0,0,0.2);padding:1px 4px;border-radius:3px;">{{to_email}}</code>, <code style="background:rgba(0,0,0,0.2);padding:1px 4px;border-radius:3px;">{{report_date}}</code>, <code style="background:rgba(0,0,0,0.2);padding:1px 4px;border-radius:3px;">{{report_range}}</code>, <code style="background:rgba(0,0,0,0.2);padding:1px 4px;border-radius:3px;">{{transaction_count}}</code>, <code style="background:rgba(0,0,0,0.2);padding:1px 4px;border-radius:3px;">{{report_summary}}</code>, <code style="background:rgba(0,0,0,0.2);padding:1px 4px;border-radius:3px;">{{from_name}}</code>.
               </div>
               <div class="form-group">
-                <label for="set-email-port">SMTP Port</label>
-                <input type="number" id="set-email-port" class="input-control" placeholder="587" value="587" required>
+                <label for="set-emailjs-public-key">EmailJS Public Key</label>
+                <input type="text" id="set-emailjs-public-key" class="input-control" placeholder="user_xxxxx" required>
               </div>
               <div class="form-group">
-                <label for="set-email-sender">Sender Email</label>
-                <input type="email" id="set-email-sender" class="input-control" placeholder="your-email@gmail.com" required>
+                <label for="set-emailjs-service-id">EmailJS Service ID</label>
+                <input type="text" id="set-emailjs-service-id" class="input-control" placeholder="service_xxxxx" required>
               </div>
               <div class="form-group">
-                <label for="set-email-password">App Password</label>
-                <input type="password" id="set-email-password" class="input-control" placeholder="Gmail App Password (16 chars)" required>
+                <label for="set-emailjs-template-id">EmailJS Template ID</label>
+                <input type="text" id="set-emailjs-template-id" class="input-control" placeholder="template_xxxxx" required>
               </div>
               <div class="form-group">
                 <label for="set-email-recipient">Recipient Email</label>
@@ -686,7 +686,7 @@
 <!-- Toast Container -->
 <div id="toast-container"></div>
 
-<script src="js/app.js?v=13"></script>
+<script src="js/app.js?v=14"></script>
 <script>
 function togglePassword() {
   const pw = document.getElementById('password');
