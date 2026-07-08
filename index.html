@@ -185,79 +185,6 @@
           </div>
         </div>
 
-        <div class="dashboard-extras">
-          <div class="extra-card" id="energy-forecast-card">
-            <div class="extra-card-header">
-              <i data-lucide="zap" style="width:20px;height:20px;color:var(--solar-yellow);"></i>
-              <h3>Panel Energy Forecast</h3>
-              <span class="badge-solar" id="energy-weather-badge">Clear</span>
-            </div>
-            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.85rem;">→ by system size (kW)</div>
-
-            <div id="panel-type-selector" class="pill-group"></div>
-
-            <div class="panel-count-row">
-              <label><i data-lucide="zap" style="width:14px;height:14px;vertical-align:middle;"></i> System Size</label>
-              <select id="kw-select" class="input-control" style="width:auto;min-width:100px;">
-                <option value="1">1 kW</option>
-                <option value="2" selected>2 kW</option>
-                <option value="3">3 kW</option>
-                <option value="4">4 kW</option>
-                <option value="5">5 kW</option>
-                <option value="6">6 kW</option>
-                <option value="7">7 kW</option>
-                <option value="8">8 kW</option>
-                <option value="9">9 kW</option>
-                <option value="10">10 kW</option>
-                <option value="15">15 kW</option>
-                <option value="20">20 kW</option>
-                <option value="25">25 kW</option>
-                <option value="30">30 kW</option>
-                <option value="40">40 kW</option>
-                <option value="50">50 kW</option>
-              </select>
-            </div>
-
-            <div class="energy-metrics-grid" id="energy-metrics-grid">
-              <div class="emetric">
-                <i data-lucide="zap" style="width:18px;height:18px;color:var(--solar-yellow);"></i>
-                <div class="emetric-value" id="energy-production">0</div>
-                <div class="emetric-label">kWh / day</div>
-              </div>
-              <div class="emetric">
-                <i data-lucide="cpu" style="width:18px;height:18px;color:var(--electric-blue);"></i>
-                <div class="emetric-value" id="energy-capacity">0</div>
-                <div class="emetric-label">Current output / day</div>
-              </div>
-              <div class="emetric">
-                <i data-lucide="leaf" style="width:18px;height:18px;color:var(--energy-green);"></i>
-                <div class="emetric-value" id="energy-co2">0</div>
-                <div class="emetric-label">CO₂ offset / day</div>
-              </div>
-              <div class="emetric">
-                <i data-lucide="percent" style="width:18px;height:18px;color:var(--electric-blue);"></i>
-                <div class="emetric-value" id="energy-efficiency">0%</div>
-                <div class="emetric-label">Efficiency</div>
-              </div>
-            </div>
-          </div>
-          <div class="extra-card">
-            <div class="extra-card-header">
-              <i data-lucide="cloud-sun" style="width:20px;height:20px;color:var(--electric-blue);"></i>
-              <h3>Site Weather</h3>
-              <span class="badge-solar" style="background:var(--electric-blue-subtle);color:var(--electric-blue);">Updated</span>
-            </div>
-            <div class="weather-info">
-              <div class="weather-icon"><i data-lucide="sun" style="width:28px;height:28px;"></i></div>
-              <div>
-                <div class="weather-temp" id="weather-temp">--°C</div>
-                <div class="weather-desc" id="weather-desc">--</div>
-                <div class="weather-location" id="weather-location">Installation Site</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div class="charts-grid">
           <div class="chart-card">
             <h3>Stock Activity Trend (Last 7 Days)</h3>
@@ -542,21 +469,6 @@
             </form>
           </div>
 
-          <div class="settings-section-card">
-            <h3><i data-lucide="zap" style="width:18px;height:18px;color:var(--solar-yellow);vertical-align:middle;"></i> Energy Forecast Settings</h3>
-            <form id="settings-energy-form">
-              <div class="form-group">
-                <p style="margin:0;font-size:0.78rem;color:var(--text-muted);">Temperature is pulled automatically from live weather data.</p>
-                <span style="font-size:0.74rem;color:var(--text-muted);">Solar panel efficiency drops ~0.4% per °C above 25°C</span>
-              </div>
-              <div class="form-group">
-                <label for="set-energy-sun">Peak Sun Hours (PSH)</label>
-                <input type="number" id="set-energy-sun" class="input-control" min="1" max="14" step="0.5" placeholder="e.g. 5" required>
-                <span style="font-size:0.74rem;color:var(--text-muted);">Average peak sunlight hours per day at your location</span>
-              </div>
-              <button type="submit" class="btn-primary" style="width:auto;padding:0.75rem 2rem;">Save Energy Settings</button>
-            </form>
-          </div>
         </div>
       </div>
 
@@ -765,7 +677,7 @@
 <!-- Toast Container -->
 <div id="toast-container"></div>
 
-<script src="js/app.js?v=11"></script>
+<script src="js/app.js?v=12"></script>
 <script>
 function togglePassword() {
   const pw = document.getElementById('password');

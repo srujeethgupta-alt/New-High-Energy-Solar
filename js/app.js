@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // Global Error Handling
 // ============================================================
 window.addEventListener('error', function(e) {
@@ -286,95 +286,6 @@ function startLiveClock() {
   setInterval(updateClock, 1000);
 }
 
-// ============================================================
-// Solar Energy Simulation
-// ============================================================
-let currentWeather = { icon: 'sun', temp: 32, desc: 'Clear Sky' };
-
-let forecastPanelTypes = [];
-let selectedPanelTypeIdx = 0;
-
-function updateSolarEnergy(metrics, forecast) {
-  const badge = document.getElementById('energy-weather-badge');
-  if (badge) {
-    const icons = { 'Clear Sky': 'sun', 'Partly Cloudy': 'cloud-sun', 'Overcast': 'cloud' };
-    badge.innerHTML = `<i data-lucide="${icons[currentWeather.desc] || 'sun'}" style="width:12px;height:12px;"></i> ${currentWeather.desc}`;
-    lucide.createIcons();
-  }
-
-  const types = (forecast && forecast.panel_types) || [];
-  forecastPanelTypes = types;
-  const selector = document.getElementById('panel-type-selector');
-  if (!selector) return;
-
-  if (types.length === 0) {
-    selector.innerHTML = '<div style="padding:0.5rem;text-align:center;color:var(--text-muted);font-size:0.78rem;">No solar panels in inventory</div>';
-    return;
-  }
-
-  let html = '';
-  types.forEach((t, i) => {
-    const active = i === selectedPanelTypeIdx ? ' pill-active' : '';
-    html += `<button class="pill-btn${active}" data-idx="${i}">${t.name.replace(/Solar Panel/i, '').trim() || t.name}</button>`;
-  });
-  selector.innerHTML = html;
-
-  selector.querySelectorAll('.pill-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      selector.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('pill-active'));
-      btn.classList.add('pill-active');
-      selectedPanelTypeIdx = parseInt(btn.dataset.idx, 10);
-      refreshEnergyMetrics();
-    });
-  });
-
-  const kwSelect = document.getElementById('kw-select');
-  if (kwSelect) {
-    kwSelect.removeEventListener('change', refreshEnergyMetrics);
-    kwSelect.addEventListener('change', refreshEnergyMetrics);
-  }
-
-  refreshEnergyMetrics();
-}
-
-function refreshEnergyMetrics() {
-  const type = forecastPanelTypes[selectedPanelTypeIdx];
-  if (!type) return;
-  const kwSelect = document.getElementById('kw-select');
-  const kw = Math.max(0.5, parseFloat((kwSelect && kwSelect.value) || '2') || 2);
-
-  const production = document.getElementById('energy-production');
-  const capacity = document.getElementById('energy-capacity');
-  const co2 = document.getElementById('energy-co2');
-  const efficiency = document.getElementById('energy-efficiency');
-
-  const panelCount = Math.ceil((kw * 1000) / type.unit_watt);
-  const daily = type.unit_daily_kwh * panelCount;
-  if (production) animateCounter(production, Math.round(daily * 100) / 100);
-  const totalAmps = (kw * 1000) / 230;
-  if (capacity) capacity.textContent = Math.round(totalAmps) + ' A';
-  if (co2) co2.textContent = Math.round(daily * 0.85) + ' kg';
-  if (efficiency) efficiency.textContent = type.efficiency_pct + '%';
-}
-
-// ============================================================
-// Weather Simulation
-// ============================================================
-function updateWeather() {
-  const conditions = [
-    { icon: 'sun', temp: 32, desc: 'Clear Sky', location: 'Solar Farm Alpha' },
-    { icon: 'cloud-sun', temp: 28, desc: 'Partly Cloudy', location: 'Installation Site B' },
-    { icon: 'cloud', temp: 24, desc: 'Overcast', location: 'Warehouse C' }
-  ];
-  const w = conditions[Math.floor(Math.random() * conditions.length)];
-  currentWeather = w;
-  const tempEl = document.getElementById('weather-temp');
-  const descEl = document.getElementById('weather-desc');
-  const locEl = document.getElementById('weather-location');
-  if (tempEl) tempEl.textContent = w.temp + '°C';
-  if (descEl) descEl.textContent = w.desc;
-  if (locEl) locEl.textContent = w.location;
-}
 
 // ============================================================
 // Init Helpers
@@ -469,8 +380,6 @@ function populateContactDropdowns() {
 // DASHBOARD
 // ============================================================
 async function loadDashboardData() {
-  updateWeather();
-  const temp = currentWeather.temp;
 
   const products = SEED.products;
   const transactions = SEED.transactions;
@@ -498,18 +407,6 @@ async function loadDashboardData() {
     const el = document.getElementById(id);
     if (el) animateCounter(el, val);
   });
-
-  // Build forecast data from solar panel products
-  const panelProducts = products.filter(p => p.category === 'Solar Panels' && p.unit_watt > 0);
-  const forecast = { panel_types: panelProducts.map(p => ({
-    id: p.id,
-    name: p.name,
-    unit_watt: p.unit_watt,
-    unit_daily_kwh: p.unit_daily_kwh,
-    efficiency_pct: p.efficiency_pct
-  })) };
-
-  updateSolarEnergy(state.metrics, forecast);
 
   // Build chart data from transactions
   const last7 = [];
@@ -754,7 +651,7 @@ function renderProductStockSummary() {
       const isLow = p.quantity < p.minimum_stock;
       const barColor = isLow ? '#EF4444' : panelCfg.color;
       const qtyLabel = isLow
-        ? `<span style="color:#EF4444;font-weight:700;">${p.quantity}</span> <span style="font-size:0.7rem;color:#EF4444;">⚠ LOW</span>`
+        ? `<span style="color:#EF4444;font-weight:700;">${p.quantity}</span> <span style="font-size:0.7rem;color:#EF4444;">âš  LOW</span>`
         : `<span style="color:${panelCfg.color};font-weight:700;">${p.quantity}</span>`;
       return `
         <div class="stock-summary-row">
@@ -944,7 +841,6 @@ async function loadSettingsData() {
   document.getElementById('set-wa-recipient').value = SEED.config.whatsapp_recipient || '';
   document.getElementById('set-wa-phone-id').value = SEED.config.whatsapp_phone_number_id || '';
   document.getElementById('set-wa-token').value = SEED.config.whatsapp_token || '';
-  document.getElementById('set-energy-sun').value = SEED.config.energy_peak_sun_hours || 5;
 }
 
 function updateStockOutAvailableHint() {
@@ -1366,14 +1262,6 @@ function setupEventListeners() {
     await loadSettingsData();
   });
 
-  // Energy forecast form
-  document.getElementById('settings-energy-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    SEED.config.energy_peak_sun_hours = parseFloat(document.getElementById('set-energy-sun').value) || 5;
-    await saveDB();
-    showToast('Energy settings saved.');
-    await loadSettingsData();
-  });
 }
 
 // ============================================================
