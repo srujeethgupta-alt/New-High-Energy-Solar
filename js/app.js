@@ -144,30 +144,55 @@ const SEED = {
   ]
 };
 
-function loadDB() {
+// ============================================================
+// Firebase Configuration
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyBe3sxPrJoag0yW8wPCkT6svHDNNnTvgB8",
+  authDomain: "new-high-energy-solar.firebaseapp.com",
+  projectId: "new-high-energy-solar",
+  storageBucket: "new-high-energy-solar.firebasestorage.app",
+  messagingSenderId: "683671728194",
+  appId: "1:683671728194:web:8d32b5786ece4e0a9efddb"
+};
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let dbReadyResolve;
+const dbReadyPromise = new Promise(resolve => { dbReadyResolve = resolve; });
+auth.signInAnonymously().catch(() => { dbReadyResolve(); });
+auth.onAuthStateChanged(() => { dbReadyResolve(); });
+
+async function loadDB() {
   try {
-    const saved = localStorage.getItem('solar_db');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      SEED.config = { ...SEED.config, ...parsed.config };
-      SEED.products = parsed.products || SEED.products;
-      SEED.suppliers = parsed.suppliers || SEED.suppliers;
-      SEED.customers = parsed.customers || SEED.customers;
-      SEED.transactions = parsed.transactions || SEED.transactions;
-    }
+    const cfgDoc = await db.collection('config').doc('app_config').get();
+    if (cfgDoc.exists) SEED.config = { ...SEED.config, ...cfgDoc.data() };
+    const pSnap = await db.collection('products').doc('all').get();
+    if (pSnap.exists) SEED.products = pSnap.data().items || SEED.products;
+    const sSnap = await db.collection('suppliers').doc('all').get();
+    if (sSnap.exists) SEED.suppliers = sSnap.data().items || SEED.suppliers;
+    const cSnap = await db.collection('customers').doc('all').get();
+    if (cSnap.exists) SEED.customers = cSnap.data().items || SEED.customers;
+    const tSnap = await db.collection('transactions').doc('all').get();
+    if (tSnap.exists) SEED.transactions = tSnap.data().items || SEED.transactions;
   } catch (e) {
-    console.warn('Failed to load DB from localStorage, using seed data');
+    console.warn('Failed to load from Firestore, using seed data:', e);
   }
 }
 
-function saveDB() {
-  localStorage.setItem('solar_db', JSON.stringify({
-    config: SEED.config,
-    products: SEED.products,
-    suppliers: SEED.suppliers,
-    customers: SEED.customers,
-    transactions: SEED.transactions
-  }));
+async function saveDB() {
+  try {
+    await db.collection('config').doc('app_config').set(SEED.config);
+    await db.collection('products').doc('all').set({ items: SEED.products });
+    await db.collection('suppliers').doc('all').set({ items: SEED.suppliers });
+    await db.collection('customers').doc('all').set({ items: SEED.customers });
+    await db.collection('transactions').doc('all').set({ items: SEED.transactions });
+  } catch (e) {
+    console.error('Failed to save to Firestore:', e);
+    showToast('Failed to save data to cloud.', 'error');
+  }
 }
 
 function genId(prefix) {
@@ -828,7 +853,7 @@ async function deleteProductCall(productId) {
   const idx = SEED.products.findIndex(p => p.id === productId);
   if (idx !== -1) {
     SEED.products.splice(idx, 1);
-    saveDB();
+    await saveDB();
     showToast('Product deleted successfully.');
     await loadProductsData();
   } else {
@@ -1048,7 +1073,7 @@ async function deleteContactCall(type, id) {
   const idx = list.findIndex(i => i.id === id);
   if (idx !== -1) {
     list.splice(idx, 1);
-    saveDB();
+    await saveDB();
     showToast(`${type === 'supplier' ? 'Supplier' : 'Customer'} deleted successfully.`);
     await loadContactsData();
     renderContactsTables();
@@ -1201,7 +1226,7 @@ function setupEventListeners() {
         const exists = SEED.products.find(p => p.id === payload.id);
         if (exists) throw new Error('Product ID already exists');
         SEED.products.push(payload);
-        saveDB();
+        await saveDB();
         showToast('Product added successfully.');
       } else {
         const idx = SEED.products.findIndex(p => p.id === id);
@@ -1213,7 +1238,7 @@ function setupEventListeners() {
         payload.unit_daily_kwh = current.unit_daily_kwh || 0;
         payload.efficiency_pct = current.efficiency_pct || 0;
         SEED.products[idx] = payload;
-        saveDB();
+        await saveDB();
         showToast('Product updated successfully.');
       }
       document.getElementById('product-modal').style.display = 'none';
@@ -1297,7 +1322,7 @@ function setupEventListeners() {
         timestamp: new Date().toISOString()
       };
       SEED.transactions.push(tx);
-      saveDB();
+      await saveDB();
       showToast('Stock in recorded successfully.');
       document.getElementById('stock-in-modal').style.display = 'none';
       await loadTransactionsData();
@@ -1331,7 +1356,7 @@ function setupEventListeners() {
         timestamp: new Date().toISOString()
       };
       SEED.transactions.push(tx);
-      saveDB();
+      await saveDB();
       showToast('Stock out recorded successfully.');
       document.getElementById('stock-out-modal').style.display = 'none';
       await loadTransactionsData();
@@ -1365,7 +1390,7 @@ function setupEventListeners() {
     SEED.config.email_sender = document.getElementById('set-email-sender').value;
     SEED.config.email_password = document.getElementById('set-email-password').value;
     SEED.config.email_recipient = document.getElementById('set-email-recipient').value;
-    saveDB();
+    await saveDB();
     showToast('Email configuration saved (local only).');
     await loadSettingsData();
   });
@@ -1376,7 +1401,7 @@ function setupEventListeners() {
     SEED.config.whatsapp_recipient = document.getElementById('set-wa-recipient').value;
     SEED.config.whatsapp_phone_number_id = document.getElementById('set-wa-phone-id').value;
     SEED.config.whatsapp_token = document.getElementById('set-wa-token').value;
-    saveDB();
+    await saveDB();
     showToast('WhatsApp configuration saved (local only).');
     await loadSettingsData();
   });
@@ -1385,7 +1410,7 @@ function setupEventListeners() {
   document.getElementById('settings-energy-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     SEED.config.energy_peak_sun_hours = parseFloat(document.getElementById('set-energy-sun').value) || 5;
-    saveDB();
+    await saveDB();
     showToast('Energy settings saved.');
     await loadSettingsData();
   });
@@ -1418,7 +1443,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           list.push(payload);
         }
-        saveDB();
+        await saveDB();
         showToast(`${type === 'supplier' ? 'Supplier' : 'Customer'} saved successfully.`);
         document.getElementById('contact-modal').style.display = 'none';
         await loadContactsData();
@@ -1466,7 +1491,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
-  loadDB();
+  await dbReadyPromise;
+  await loadDB();
   loadTheme();
   startLiveClock();
   initParticles();
