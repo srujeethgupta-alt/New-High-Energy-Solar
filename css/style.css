@@ -322,7 +322,7 @@ body {
 .login-logo-wrap {
   width: 80px;
   height: 80px;
-  margin: 0 auto 1.5rem;
+  margin: 0 auto 0.75rem;
   border-radius: 20px;
   background: linear-gradient(135deg, var(--solar-yellow), var(--solar-yellow-dark));
   display: flex;
@@ -389,47 +389,6 @@ body {
   color: var(--text-muted);
   font-size: 0.9rem;
   margin-bottom: 2rem;
-}
-
-.login-sun-animation {
-  width: 100%;
-  height: 60px;
-  margin-bottom: 0.5rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.login-sun {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 40px;
-  height: 40px;
-  background: var(--solar-yellow);
-  border-radius: 50%;
-  box-shadow: 0 0 40px var(--solar-yellow), 0 0 80px rgba(255, 193, 7, 0.3);
-  animation: sunPulse 4s ease-in-out infinite;
-}
-
-@keyframes sunPulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-  50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-}
-
-.login-sun-rays {
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 120px; height: 120px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,193,7,0.15) 0%, transparent 70%);
-  animation: raysRotate 20s linear infinite;
-}
-
-@keyframes raysRotate {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 .login-card .form-group { text-align: left; margin-bottom: 1.25rem; }
