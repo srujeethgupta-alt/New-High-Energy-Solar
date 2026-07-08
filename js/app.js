@@ -865,7 +865,7 @@ async function deleteProductCall(productId) {
 // TRANSACTIONS
 // ============================================================
 async function loadTransactionsData() {
-  state.transactions = SEED.transactions;
+  state.transactions = [...SEED.transactions].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   state.products = SEED.products;
   populateTransactionsSelects();
   renderTransactionsTable();
