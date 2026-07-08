@@ -402,6 +402,16 @@ function populateCategoryOptions(extraCategory = '') {
   }
 }
 
+function populateTxTypeFilter() {
+  const categories = [...new Set(state.products.map(p => p.category).filter(Boolean))].sort();
+  const select = document.getElementById('tx-type-filter');
+  const currentVal = select.value;
+  select.innerHTML =
+    '<option value="">All Types</option>' +
+    categories.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (categories.includes(currentVal)) select.value = currentVal;
+}
+
 function showLogin() {
   document.getElementById('login-section').style.display = 'flex';
   document.getElementById('app-section').style.display = 'none';
@@ -673,6 +683,7 @@ function renderCharts() {
 async function loadProductsData() {
   state.products = SEED.products;
   populateCategoryOptions();
+  populateTxTypeFilter();
   renderProductStockSummary();
   renderProductsTable();
 }
@@ -832,6 +843,7 @@ async function deleteProductCall(productId) {
 async function loadTransactionsData() {
   state.transactions = [...SEED.transactions].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   state.products = SEED.products;
+  populateTxTypeFilter();
   populateTransactionsSelects();
   renderTransactionsTable();
 }
@@ -854,7 +866,8 @@ function renderTransactionsTable() {
                         (tx.entity || '').toLowerCase().includes(q) ||
                         (tx.employee || '').toLowerCase().includes(q) ||
                         (tx.id || '').toLowerCase().includes(q);
-    const matchType = state.txFilterType === '' || tx.type === state.txFilterType;
+    const matchType = state.txFilterType === '' ||
+      (state.products.find(p => p.id === tx.product_id)?.category === state.txFilterType);
     return matchSearch && matchType;
   });
   const total = filtered.length;
@@ -1237,7 +1250,8 @@ function setupEventListeners() {
                 (tx.entity || '').toLowerCase().includes(q) ||
                 (tx.employee || '').toLowerCase().includes(q) ||
                 (tx.id || '').toLowerCase().includes(q);
-      const t = state.txFilterType === '' || tx.type === state.txFilterType;
+      const t = state.txFilterType === '' ||
+        (state.products.find(p => p.id === tx.product_id)?.category === state.txFilterType);
       return s && t;
     }).length;
     const pages = Math.ceil(total / state.txLimit);
