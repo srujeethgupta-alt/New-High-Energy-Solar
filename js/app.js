@@ -897,9 +897,8 @@ async function loadReportsData() {
   document.getElementById('wa-stat-phoneid').innerText = SEED.config.whatsapp_phone_number_id || 'Demo Mode';
 }
 
-function downloadReportFile(format) {
+function downloadReportFile() {
   const range = document.getElementById('report-range').value;
-  // Client-side CSV export
   const txns = SEED.transactions;
   let filtered = txns;
   const now = new Date();
@@ -918,24 +917,19 @@ function downloadReportFile(format) {
     filtered = txns.filter(tx => tx.date >= cutoff);
   }
 
-  if (format === 'csv') {
-    const headers = ['ID', 'Type', 'Product ID', 'Product Name', 'Quantity', 'Entity', 'Date', 'Remarks'];
-    const rows = filtered.map(tx => [tx.id, tx.type, tx.product_id, tx.product_name, tx.quantity, tx.entity || '', tx.date, tx.remarks || '']);
-    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${range}_report_${now.toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    showToast('Report downloaded as CSV!');
-  } else {
-    showToast('Serverless mode. PDF/Excel export is not available. Downloading CSV instead.', 'warning');
-    downloadReportFile('csv');
-  }
+  const headers = ['ID', 'Type', 'Product ID', 'Product Name', 'Quantity', 'Entity', 'Date', 'Remarks'];
+  const rows = filtered.map(tx => [tx.id, tx.type, tx.product_id, tx.product_name, tx.quantity, tx.entity || '', tx.date, tx.remarks || '']);
+  const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${range}_report_${now.toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Report downloaded as CSV!');
 }
 
 // ============================================================
@@ -1331,8 +1325,7 @@ function setupEventListeners() {
   });
 
   // Report exports
-  document.getElementById('export-pdf-btn').addEventListener('click', () => downloadReportFile('pdf'));
-  document.getElementById('export-xlsx-btn').addEventListener('click', () => downloadReportFile('xlsx'));
+  document.getElementById('export-csv-btn').addEventListener('click', () => downloadReportFile('csv'));
 
   // Email test (stub - demo mode)
   document.getElementById('trigger-email-test').addEventListener('click', async () => {
