@@ -2,7 +2,27 @@ import crypto from 'crypto';
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
 const CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
-const PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+const PRIVATE_KEY = (() => {
+  const raw = process.env.FIREBASE_PRIVATE_KEY;
+  if (!raw) {
+    console.error('FIREBASE_PRIVATE_KEY is empty or not set');
+    process.exit(1);
+  }
+  const hadLiteralNs = raw.includes('\\n');
+  const hadRealNewlines = raw.includes('\n');
+  let key = raw.replace(/\\n/g, '\n').trim();
+  const startsOk = key.startsWith('-----BEGIN PRIVATE KEY-----');
+  const endsOk = key.endsWith('-----END PRIVATE KEY-----');
+  if (!startsOk || !endsOk) {
+    console.error('FIREBASE_PRIVATE_KEY has invalid PEM format after processing:');
+    console.error(`  literal \\n: ${hadLiteralNs}, real newlines: ${hadRealNewlines}`);
+    console.error(`  starts with BEGIN: ${startsOk}, ends with END: ${endsOk}`);
+    console.error(`  first 40 chars: "${key.substring(0, 40)}"`);
+    console.error(`  last 40 chars:  "${key.substring(key.length - 40)}"`);
+    process.exit(1);
+  }
+  return key;
+})();
 const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
 const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
