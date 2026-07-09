@@ -1,51 +1,18 @@
 import { GoogleAuth } from 'google-auth-library';
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
-const CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
-const PRIVATE_KEY = (() => {
-  let key = process.env.FIREBASE_PRIVATE_KEY;
-  if (!key) {
-    console.error('FIREBASE_PRIVATE_KEY is empty or not set');
-    process.exit(1);
-  }
-  key = key
-    .replace(/\\n/g, '\n')    // literal \n → real newlines
-    .replace(/\r\n/g, '\n')   // CRLF → LF
-    .replace(/\r/g, '\n')     // CR → LF
-    .split('\n')              // split into lines
-    .map(l => l.trim())       // trim whitespace per line
-    .filter(l => l.length > 0) // remove blank lines
-    .join('\n');              // clean PEM with single line breaks
-  const startsOk = key.startsWith('-----BEGIN PRIVATE KEY-----');
-  const endsOk = key.endsWith('-----END PRIVATE KEY-----');
-  if (!startsOk || !endsOk) {
-    console.error('FIREBASE_PRIVATE_KEY PEM format invalid after normalization');
-    console.error(`  starts with BEGIN: ${startsOk}`);
-    console.error(`  ends with END: ${endsOk}`);
-    console.error(`  first 40 chars: "${key.substring(0, 40)}"`);
-    console.error(`  last 40 chars:  "${key.substring(key.length - 40)}"`);
-    process.exit(1);
-  }
-  return key;
-})();
 const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
 const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
 const EMAILJS_RECIPIENT = process.env.EMAILJS_RECIPIENT;
 
-if (!PROJECT_ID || !CLIENT_EMAIL || !PRIVATE_KEY || !EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_RECIPIENT) {
+if (!PROJECT_ID || !EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_RECIPIENT) {
   console.error('Missing required environment variables');
   process.exit(1);
 }
 
 async function getFirestoreToken() {
   const auth = new GoogleAuth({
-    credentials: {
-      type: 'service_account',
-      project_id: PROJECT_ID,
-      client_email: CLIENT_EMAIL,
-      private_key: PRIVATE_KEY,
-    },
     scopes: ['https://www.googleapis.com/auth/datastore'],
   });
   const client = await auth.getClient();
