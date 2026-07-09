@@ -8,7 +8,14 @@ const PRIVATE_KEY = (() => {
     console.error('FIREBASE_PRIVATE_KEY is empty or not set');
     process.exit(1);
   }
-  key = key.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+  key = key
+    .replace(/\\n/g, '\n')    // literal \n → real newlines
+    .replace(/\r\n/g, '\n')   // CRLF → LF
+    .replace(/\r/g, '\n')     // CR → LF
+    .split('\n')              // split into lines
+    .map(l => l.trim())       // trim whitespace per line
+    .filter(l => l.length > 0) // remove blank lines
+    .join('\n');              // clean PEM with single line breaks
   const startsOk = key.startsWith('-----BEGIN PRIVATE KEY-----');
   const endsOk = key.endsWith('-----END PRIVATE KEY-----');
   if (!startsOk || !endsOk) {
