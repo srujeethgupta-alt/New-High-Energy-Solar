@@ -301,11 +301,13 @@ function populateTxCategoryFilter() {
 }
 
 function showLogin() {
+  stopIdleMonitor();
   document.getElementById('login-section').style.display = 'flex';
   document.getElementById('app-section').style.display = 'none';
 }
 
 function showApp() {
+  startIdleMonitor();
   document.getElementById('login-section').style.display = 'none';
   document.getElementById('app-section').style.display = 'flex';
   updateUserProfile();
@@ -1024,6 +1026,8 @@ function setupEventListeners() {
         passwordInput.value = '';
         showToast('Login successful. Welcome back!');
         showApp();
+        resetIdleTimer();
+        checkFormDraft();
       } else {
         throw new Error('Invalid username or password');
       }
@@ -1457,6 +1461,122 @@ function toggleTheme() {
     lucide.createIcons();
   }
   showToast(`Switched to ${next} mode`, 'success');
+}
+
+// ============================================================
+// Idle Timeout / Auto-Logout
+// ============================================================
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes of inactivity before auto-logout
+const IDLE_WARNING_MS = 2 * 60 * 1000;  // show warning 2 minutes before timeout
+
+let idleLastActivity = Date.now();
+let idleWarningShown = false;
+let idleIntervalId = null;
+
+function resetIdleTimer() {
+  idleLastActivity = Date.now();
+  if (idleWarningShown) {
+    hideIdleWarning();
+  }
+}
+
+function hideIdleWarning() {
+  idleWarningShown = false;
+  const el = document.getElementById('idle-warning-overlay');
+  if (el) el.remove();
+}
+
+function showIdleWarning() {
+  if (idleWarningShown) return;
+  idleWarningShown = true;
+  const existing = document.getElementById('idle-warning-overlay');
+  if (existing) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'idle-warning-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg-card,#1E293B);border:1px solid var(--border-color,#334155);border-radius:16px;padding:32px;max-width:420px;width:90%;box-shadow:0 0 40px rgba(0,0,0,0.4);text-align:center;';
+  modal.innerHTML = `
+    <div style="width:48px;height:48px;border-radius:50%;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+      <i data-lucide="clock" style="width:24px;height:24px;color:#F59E0B;"></i>
+    </div>
+    <h3 style="color:var(--text,#E2E8F0);margin:0 0 8px;">Inactivity Warning</h3>
+    <p style="color:var(--text-muted,#94A3B8);margin:0 0 24px;font-size:14px;">You'll be signed out in <strong>2 minutes</strong> due to inactivity.<br>Click anywhere or press a key to stay signed in.</p>
+    <button onclick="resetIdleTimer()" style="background:#F59E0B;color:#0F172A;border:none;padding:10px 24px;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px;">Stay Signed In</button>`;
+  overlay.appendChild(modal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) resetIdleTimer(); });
+  document.body.appendChild(overlay);
+  lucide.createIcons();
+}
+
+function performAutoLogout() {
+  saveFormDraft();
+  showToast('Signed out due to inactivity.', 'warning');
+  logoutLocal();
+}
+
+function checkIdle() {
+  const elapsed = Date.now() - idleLastActivity;
+  if (elapsed >= IDLE_TIMEOUT_MS) {
+    performAutoLogout();
+    return;
+  }
+  if (elapsed >= IDLE_TIMEOUT_MS - IDLE_WARNING_MS && !idleWarningShown) {
+    showIdleWarning();
+  }
+}
+
+function startIdleMonitor() {
+  if (idleIntervalId) return;
+  resetIdleTimer();
+  const events = ['mousemove', 'click', 'keydown', 'scroll', 'wheel', 'touchstart'];
+  events.forEach(ev => document.addEventListener(ev, resetIdleTimer, { passive: true }));
+  idleIntervalId = setInterval(checkIdle, 10000);
+}
+
+function stopIdleMonitor() {
+  if (idleIntervalId) {
+    clearInterval(idleIntervalId);
+    idleIntervalId = null;
+  }
+  hideIdleWarning();
+  const events = ['mousemove', 'click', 'keydown', 'scroll', 'wheel', 'touchstart'];
+  events.forEach(ev => document.removeEventListener(ev, resetIdleTimer));
+}
+
+// Save visible form field values before forced logout
+function saveFormDraft() {
+  const selectors = [
+    '#in-product', '#in-qty', '#in-supplier', '#in-date', '#in-remarks',
+    '#out-product', '#out-qty', '#out-customer', '#out-employee', '#out-date', '#out-remarks',
+    '#prod-name', '#prod-category', '#prod-brand', '#prod-qty', '#prod-min',
+    '#prod-model', '#prod-supplier', '#prod-location',
+  ];
+  const draft = {};
+  selectors.forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el && el.value) draft[sel] = el.value;
+  });
+  if (Object.keys(draft).length) {
+    sessionStorage.setItem('solar_form_draft', JSON.stringify(draft));
+  }
+}
+
+// Restore saved form draft after re-login
+function checkFormDraft() {
+  const raw = sessionStorage.getItem('solar_form_draft');
+  if (!raw) return;
+  sessionStorage.removeItem('solar_form_draft');
+  try {
+    const draft = JSON.parse(raw);
+    const keys = Object.keys(draft);
+    if (!keys.length) return;
+    keys.forEach(sel => {
+      const el = document.querySelector(sel);
+      if (el) el.value = draft[sel];
+    });
+    showToast('Unsaved form data restored from before sign-out.', 'info');
+  } catch (e) { /* ignore parse errors */ }
 }
 
 // ============================================================
