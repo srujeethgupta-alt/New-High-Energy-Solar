@@ -34,15 +34,20 @@ async function getFirestoreToken() {
   return token.token;
 }
 
-async function fetchTransactions(token) {
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/transactions/all`;
+async function fetchFirestoreDoc(token, collectionId) {
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionId}/all`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (res.status === 404) return [];
   if (!res.ok) throw new Error(`Firestore error ${res.status}: ${await res.text()}`);
   const doc = await res.json();
-  const values = doc.fields?.transactions?.arrayValue?.values;
+  const values = doc.fields?.items?.arrayValue?.values;
   if (!values) return [];
-  return values.map(v => {
+  return values;
+}
+
+async function fetchTransactions(token) {
+  const items = await fetchFirestoreDoc(token, 'transactions');
+  return items.map(v => {
     const f = v.mapValue.fields;
     return {
       id: f.id?.stringValue || '',
@@ -57,7 +62,58 @@ async function fetchTransactions(token) {
   });
 }
 
-async function sendReport(range, transactions) {
+async function fetchProducts(token) {
+  const items = await fetchFirestoreDoc(token, 'products');
+  return items.map(v => {
+    const f = v.mapValue.fields;
+    return {
+      id: f.id?.stringValue || '',
+      name: f.name?.stringValue || '',
+      category: f.category?.stringValue || '',
+      brand: f.brand?.stringValue || '',
+      quantity: Number(f.quantity?.integerValue || f.quantity?.doubleValue || 0),
+      unit: f.unit?.stringValue || '',
+      minimum_stock: Number(f.minimum_stock?.integerValue || f.minimum_stock?.doubleValue || 0),
+    };
+  });
+}
+
+function buildStockListHtml(products) {
+  if (!products.length) return '<p>No products in inventory.</p>';
+  const sorted = [...products].sort((a, b) => a.name.localeCompare(b.name));
+  let rows = '';
+  for (const p of sorted) {
+    const isLow = p.quantity < p.minimum_stock && p.quantity > 0;
+    const isOut = p.quantity === 0;
+    let statusBadge = '<span style="color:#22C55E;">OK</span>';
+    if (isOut) statusBadge = '<span style="color:#EF4444;font-weight:700;">OUT OF STOCK</span>';
+    else if (isLow) statusBadge = '<span style="color:#F59E0B;font-weight:700;">LOW</span>';
+    rows += `<tr>
+        <td style="padding:6px 10px;border:1px solid #374151;">${p.name}</td>
+        <td style="padding:6px 10px;border:1px solid #374151;">${p.brand || '—'}</td>
+        <td style="padding:6px 10px;border:1px solid #374151;">${p.category}</td>
+        <td style="padding:6px 10px;border:1px solid #374151;text-align:center;">${p.quantity} ${p.unit}</td>
+        <td style="padding:6px 10px;border:1px solid #374151;text-align:center;">${statusBadge}</td>
+      </tr>`;
+  }
+  return `
+    <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;color:#E2E8F0;">
+      <thead>
+        <tr style="background:#F59E0B;color:#0F172A;">
+          <th style="padding:8px 10px;border:1px solid #F59E0B;text-align:left;">Product</th>
+          <th style="padding:8px 10px;border:1px solid #F59E0B;text-align:left;">Brand</th>
+          <th style="padding:8px 10px;border:1px solid #F59E0B;text-align:left;">Category</th>
+          <th style="padding:8px 10px;border:1px solid #F59E0B;text-align:center;">Qty</th>
+          <th style="padding:8px 10px;border:1px solid #F59E0B;text-align:center;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>`;
+}
+
+async function sendReport(range, transactions, products) {
   const now = new Date();
   let filtered = transactions;
   const today = now.toISOString().split('T')[0];
@@ -74,9 +130,11 @@ async function sendReport(range, transactions) {
   const totalOut = filtered.filter(t => t.type === 'OUT').reduce((s, t) => s + t.quantity, 0);
   const summary = `IN: ${totalIn}, OUT: ${totalOut}, Total transactions: ${filtered.length}`;
 
-  // If there are no transactions in this range, skip sending the email to avoid sending empty reports
-  if (filtered.length === 0) {
-    console.log(`No transactions for ${range} report — skipping email send.`);
+  const stockListHtml = buildStockListHtml(products);
+
+  // If there are no transactions AND no products, skip sending the email
+  if (filtered.length === 0 && products.length === 0) {
+    console.log(`No transactions or products for ${range} report — skipping email send.`);
     return;
   }
 
@@ -95,6 +153,7 @@ async function sendReport(range, transactions) {
     report_range: range.charAt(0).toUpperCase() + range.slice(1),
     transaction_count: filtered.length,
     report_summary: summary,
+    stock_list: stockListHtml,
   };
 
   if (!templateParams.to_email) {
@@ -127,12 +186,15 @@ async function main() {
   console.log('Fetching transactions...');
   const transactions = await fetchTransactions(token);
   console.log(`Total transactions on record: ${transactions.length}`);
+  console.log('Fetching products...');
+  const products = await fetchProducts(token);
+  console.log(`Total products on record: ${products.length}`);
 
-  await sendReport('daily', transactions);
+  await sendReport('daily', transactions, products);
 
   const dayOfWeek = new Date().getDay();
   if (dayOfWeek === 1) {
-    await sendReport('weekly', transactions);
+    await sendReport('weekly', transactions, products);
   }
 }
 

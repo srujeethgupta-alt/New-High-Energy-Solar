@@ -817,6 +817,19 @@ function downloadReportFile(format) {
   const rows = filtered.map(tx => [tx.id, tx.type, tx.product_id, tx.product_name, tx.quantity, tx.entity || '', tx.date, tx.remarks || '']);
   const filename = `${range}_report_${now.toISOString().split('T')[0]}`;
 
+  // Build stock list
+  const stockHeaders = ['Product', 'Brand', 'Category', 'Quantity', 'Status'];
+  const products = SEED.products || [];
+  const sorted = [...products].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  const stockRows = sorted.map(p => {
+    const isLow = p.quantity < p.minimum_stock && p.quantity > 0;
+    const isOut = p.quantity === 0;
+    let status = 'OK';
+    if (isOut) status = 'OUT OF STOCK';
+    else if (isLow) status = 'LOW';
+    return [p.name, p.brand || '—', p.category, `${p.quantity} ${p.unit}`, status];
+  });
+
   if (format === 'pdf') {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -824,18 +837,39 @@ function downloadReportFile(format) {
     doc.text('Stock Report', 14, 15);
     doc.setFontSize(10);
     doc.text(`Generated: ${now.toLocaleString()}`, 14, 22);
-    doc.autoTable({ head: [headers], body: rows, startY: 28, styles: { fontSize: 8 }, headStyles: { fillColor: [255, 193, 7], textColor: [15, 23, 42] } });
+
+    // Transactions table
+    doc.setFontSize(12);
+    doc.text('Transactions', 14, 30);
+    doc.autoTable({ head: [headers], body: rows, startY: 36, styles: { fontSize: 8 }, headStyles: { fillColor: [255, 193, 7], textColor: [15, 23, 42] } });
+
+    // Stock list section on a new page
+    doc.addPage();
+    doc.setFontSize(14);
+    doc.text('Current Stock', 14, 15);
+    const stockStartY = 22;
+    doc.autoTable({ head: [stockHeaders], body: stockRows, startY: stockStartY, styles: { fontSize: 8 }, headStyles: { fillColor: [255, 193, 7], textColor: [15, 23, 42] } });
+
     doc.save(`${filename}.pdf`);
     showToast('Report downloaded as PDF!');
   } else if (format === 'xlsx') {
     const wb = XLSX.utils.book_new();
+
+    // Transactions sheet
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    XLSX.utils.book_append_sheet(wb, ws, 'Report');
+    XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+
+    // Stock list sheet
+    const wsStock = XLSX.utils.aoa_to_sheet([stockHeaders, ...stockRows]);
+    XLSX.utils.book_append_sheet(wb, wsStock, 'Current Stock');
+
     XLSX.writeFile(wb, `${filename}.xlsx`);
     showToast('Report downloaded as Excel!');
   } else {
-    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const txCsv = [headers.join(','), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
+    const stockCsv = ['\n\nCurrent Stock', stockHeaders.join(','), ...stockRows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
+    const fullCsv = txCsv + stockCsv;
+    const blob = new Blob([fullCsv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1244,6 +1278,41 @@ function setupEventListeners() {
   document.getElementById('export-csv-btn').addEventListener('click', () => downloadReportFile('csv'));
 
   // Email test — send via EmailJS
+  function buildStockListHtml(products) {
+    if (!products.length) return '<p>No products in inventory.</p>';
+    const sorted = [...products].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    let rows = '';
+    for (const p of sorted) {
+      const isLow = p.quantity < p.minimum_stock && p.quantity > 0;
+      const isOut = p.quantity === 0;
+      let statusBadge = '<span style="color:#22C55E;">OK</span>';
+      if (isOut) statusBadge = '<span style="color:#EF4444;font-weight:700;">OUT OF STOCK</span>';
+      else if (isLow) statusBadge = '<span style="color:#F59E0B;font-weight:700;">LOW</span>';
+      rows += `<tr>
+        <td style="padding:6px 10px;border:1px solid #374151;">${p.name}</td>
+        <td style="padding:6px 10px;border:1px solid #374151;">${p.brand || '—'}</td>
+        <td style="padding:6px 10px;border:1px solid #374151;">${p.category}</td>
+        <td style="padding:6px 10px;border:1px solid #374151;text-align:center;">${p.quantity} ${p.unit}</td>
+        <td style="padding:6px 10px;border:1px solid #374151;text-align:center;">${statusBadge}</td>
+      </tr>`;
+    }
+    return `
+      <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;color:#E2E8F0;">
+        <thead>
+          <tr style="background:#F59E0B;color:#0F172A;">
+            <th style="padding:8px 10px;border:1px solid #F59E0B;text-align:left;">Product</th>
+            <th style="padding:8px 10px;border:1px solid #F59E0B;text-align:left;">Brand</th>
+            <th style="padding:8px 10px;border:1px solid #F59E0B;text-align:left;">Category</th>
+            <th style="padding:8px 10px;border:1px solid #F59E0B;text-align:center;">Qty</th>
+            <th style="padding:8px 10px;border:1px solid #F59E0B;text-align:center;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>`;
+  }
+
   async function sendEmailReport(rangeLabel) {
     const pk = SEED.config.emailjs_public_key;
     const sid = SEED.config.emailjs_service_id;
@@ -1272,6 +1341,7 @@ function setupEventListeners() {
     const totalIn = filtered.filter(t => t.type === 'IN').reduce((s, t) => s + t.quantity, 0);
     const totalOut = filtered.filter(t => t.type === 'OUT').reduce((s, t) => s + t.quantity, 0);
     const summary = `IN: ${totalIn}, OUT: ${totalOut}, Total transactions: ${filtered.length}`;
+    const stockListHtml = buildStockListHtml(SEED.products);
     try {
       await emailjs.send(sid, tid, {
         to_email: recipient,
@@ -1280,6 +1350,7 @@ function setupEventListeners() {
         report_range: rangeLabel.charAt(0).toUpperCase() + rangeLabel.slice(1),
         transaction_count: filtered.length,
         report_summary: summary,
+        stock_list: stockListHtml,
       });
       showToast(`${rangeLabel.charAt(0).toUpperCase() + rangeLabel.slice(1)} report sent to ${recipient}!`);
     } catch (err) {
