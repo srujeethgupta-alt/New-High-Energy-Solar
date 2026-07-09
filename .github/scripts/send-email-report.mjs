@@ -2,6 +2,7 @@ import { GoogleAuth } from 'google-auth-library';
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
 const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
+const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY;
 const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
 const EMAILJS_RECIPIENT = process.env.EMAILJS_RECIPIENT;
@@ -9,6 +10,7 @@ const EMAILJS_RECIPIENT = process.env.EMAILJS_RECIPIENT;
 const missing = [];
 if (!PROJECT_ID) missing.push('FIREBASE_PROJECT_ID');
 if (!EMAILJS_PUBLIC_KEY) missing.push('EMAILJS_PUBLIC_KEY');
+if (!EMAILJS_PRIVATE_KEY) missing.push('EMAILJS_PRIVATE_KEY');
 if (!EMAILJS_SERVICE_ID) missing.push('EMAILJS_SERVICE_ID');
 if (!EMAILJS_TEMPLATE_ID) missing.push('EMAILJS_TEMPLATE_ID');
 if (!EMAILJS_RECIPIENT) missing.push('EMAILJS_RECIPIENT');
@@ -75,6 +77,7 @@ async function sendReport(range, transactions) {
       service_id: EMAILJS_SERVICE_ID,
       template_id: EMAILJS_TEMPLATE_ID,
       user_id: EMAILJS_PUBLIC_KEY,
+      accessToken: EMAILJS_PRIVATE_KEY,
       template_params: {
         to_email: EMAILJS_RECIPIENT,
         from_name: 'New High Energy Solar',
