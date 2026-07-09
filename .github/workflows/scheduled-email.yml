@@ -15,8 +15,11 @@ jobs:
         with:
           node-version: 22
       - name: Configure Firebase credentials
+        shell: bash
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "${{ github.workspace }}/firebase-service-account.json"
+          echo "$SERVICE_ACCOUNT" > "${{ github.workspace }}/firebase-service-account.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=${{ github.workspace }}/firebase-service-account.json" >> $GITHUB_ENV
       - run: npm install google-auth-library
       - name: Send email reports

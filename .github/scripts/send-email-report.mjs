@@ -6,8 +6,16 @@ const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
 const EMAILJS_RECIPIENT = process.env.EMAILJS_RECIPIENT;
 
-if (!PROJECT_ID || !EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_RECIPIENT) {
-  console.error('Missing required environment variables');
+const missing = [];
+if (!PROJECT_ID) missing.push('FIREBASE_PROJECT_ID');
+if (!EMAILJS_PUBLIC_KEY) missing.push('EMAILJS_PUBLIC_KEY');
+if (!EMAILJS_SERVICE_ID) missing.push('EMAILJS_SERVICE_ID');
+if (!EMAILJS_TEMPLATE_ID) missing.push('EMAILJS_TEMPLATE_ID');
+if (!EMAILJS_RECIPIENT) missing.push('EMAILJS_RECIPIENT');
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) missing.push('GOOGLE_APPLICATION_CREDENTIALS (env var — set by workflow step)');
+if (missing.length) {
+  console.error('Missing required environment variables:');
+  missing.forEach(v => console.error(`  - ${v}`));
   process.exit(1);
 }
 
