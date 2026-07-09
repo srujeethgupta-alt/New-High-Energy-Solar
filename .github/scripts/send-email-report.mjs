@@ -1,22 +1,20 @@
-import crypto from 'crypto';
+import { GoogleAuth } from 'google-auth-library';
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
 const CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
 const PRIVATE_KEY = (() => {
-  const raw = process.env.FIREBASE_PRIVATE_KEY;
-  if (!raw) {
+  let key = process.env.FIREBASE_PRIVATE_KEY;
+  if (!key) {
     console.error('FIREBASE_PRIVATE_KEY is empty or not set');
     process.exit(1);
   }
-  const hadLiteralNs = raw.includes('\\n');
-  const hadRealNewlines = raw.includes('\n');
-  let key = raw.replace(/\\n/g, '\n').trim();
+  key = key.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
   const startsOk = key.startsWith('-----BEGIN PRIVATE KEY-----');
   const endsOk = key.endsWith('-----END PRIVATE KEY-----');
   if (!startsOk || !endsOk) {
-    console.error('FIREBASE_PRIVATE_KEY has invalid PEM format after processing:');
-    console.error(`  literal \\n: ${hadLiteralNs}, real newlines: ${hadRealNewlines}`);
-    console.error(`  starts with BEGIN: ${startsOk}, ends with END: ${endsOk}`);
+    console.error('FIREBASE_PRIVATE_KEY PEM format invalid after normalization');
+    console.error(`  starts with BEGIN: ${startsOk}`);
+    console.error(`  ends with END: ${endsOk}`);
     console.error(`  first 40 chars: "${key.substring(0, 40)}"`);
     console.error(`  last 40 chars:  "${key.substring(key.length - 40)}"`);
     process.exit(1);
@@ -33,34 +31,19 @@ if (!PROJECT_ID || !CLIENT_EMAIL || !PRIVATE_KEY || !EMAILJS_PUBLIC_KEY || !EMAI
   process.exit(1);
 }
 
-function base64url(str) {
-  return Buffer.from(str).toString('base64url');
-}
-
 async function getFirestoreToken() {
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const now = Math.floor(Date.now() / 1000);
-  const claim = {
-    iss: CLIENT_EMAIL,
-    scope: 'https://www.googleapis.com/auth/datastore',
-    aud: 'https://oauth2.googleapis.com/token',
-    exp: now + 3600,
-    iat: now,
-  };
-  const input = base64url(JSON.stringify(header)) + '.' + base64url(JSON.stringify(claim));
-  const signer = crypto.createSign('RSA-SHA256');
-  signer.update(input);
-  const sig = signer.sign(PRIVATE_KEY, 'base64url');
-  const jwt = input + '.' + sig;
-
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
+  const auth = new GoogleAuth({
+    credentials: {
+      type: 'service_account',
+      project_id: PROJECT_ID,
+      client_email: CLIENT_EMAIL,
+      private_key: PRIVATE_KEY,
+    },
+    scopes: ['https://www.googleapis.com/auth/datastore'],
   });
-  const data = await res.json();
-  if (!data.access_token) throw new Error('Failed to get OAuth token: ' + JSON.stringify(data));
-  return data.access_token;
+  const client = await auth.getClient();
+  const token = await client.getAccessToken();
+  return token.token;
 }
 
 async function fetchTransactions(token) {
