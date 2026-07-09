@@ -21,6 +21,10 @@ if (missing.length) {
   process.exit(1);
 }
 
+function isEmail(val) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+}
+
 async function getFirestoreToken() {
   const auth = new GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/datastore'],
@@ -70,6 +74,33 @@ async function sendReport(range, transactions) {
   const totalOut = filtered.filter(t => t.type === 'OUT').reduce((s, t) => s + t.quantity, 0);
   const summary = `IN: ${totalIn}, OUT: ${totalOut}, Total transactions: ${filtered.length}`;
 
+  // If there are no transactions in this range, skip sending the email to avoid sending empty reports
+  if (filtered.length === 0) {
+    console.log(`No transactions for ${range} report — skipping email send.`);
+    return;
+  }
+
+  const recipient = (EMAILJS_RECIPIENT || '').trim();
+  if (!recipient) {
+    throw new Error('EMAILJS_RECIPIENT is empty after trimming — aborting email send');
+  }
+  if (!isEmail(recipient)) {
+    throw new Error(`EMAILJS_RECIPIENT does not look like a valid email address: "${recipient}"`);
+  }
+
+  const templateParams = {
+    to_email: recipient,
+    from_name: 'New High Energy Solar',
+    report_date: now.toLocaleDateString('en-IN'),
+    report_range: range.charAt(0).toUpperCase() + range.slice(1),
+    transaction_count: filtered.length,
+    report_summary: summary,
+  };
+
+  if (!templateParams.to_email) {
+    throw new Error('Recipient is empty in template_params — aborting.');
+  }
+
   const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -77,15 +108,8 @@ async function sendReport(range, transactions) {
       service_id: EMAILJS_SERVICE_ID,
       template_id: EMAILJS_TEMPLATE_ID,
       user_id: EMAILJS_PUBLIC_KEY,
-      accessToken: EMAILJS_PRIVATE_KEY,
-      template_params: {
-        to_email: EMAILJS_RECIPIENT,
-        from_name: 'New High Energy Solar',
-        report_date: now.toLocaleDateString('en-IN'),
-        report_range: range.charAt(0).toUpperCase() + range.slice(1),
-        transaction_count: filtered.length,
-        report_summary: summary,
-      },
+      // Note: private key is not required in the public REST call; keep it out of the body for security.
+      template_params: templateParams,
     }),
   });
 
